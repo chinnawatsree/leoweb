@@ -1,15 +1,45 @@
 <!-- home.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <title>Home</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>ตำแหน่งเครื่องมือของลูกค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 500px; width: 100%; }
+    body { font-family: sans-serif; margin: 0; padding: 1rem; }
+  </style>
 </head>
-<body class="p-6">
-  <h1 class="text-3xl font-semibold mb-4">🏠 หน้าหลัก</h1>
-  <p class="text-gray-700">ยินดีต้อนรับเข้าสู่หน้าแรก</p>
+<body>
+  <h2>ตำแหน่งเครื่องมือของลูกค้า</h2>
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // สร้างแผนที่เริ่มต้นที่กรุงเทพ
+    const map = L.map('map').setView([13.736717, 100.523186], 6);
+
+    // ใช้แผนที่จาก OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // ข้อมูลตำแหน่งเครื่องมือ (ตัวอย่าง)
+    const tools = [
+      { name: "เครื่องมือ A", lat: 13.7563, lng: 100.5018, detail: "ติดตั้งเมื่อ 2024-11-01" },
+      { name: "เครื่องมือ B", lat: 18.7883, lng: 98.9853, detail: "สถานะ: ปกติ" },
+      { name: "เครื่องมือ C", lat: 7.9519, lng: 98.3381, detail: "ต้องการตรวจสอบ" }
+    ];
+
+    // วนลูปแสดง marker พร้อม popup
+    tools.forEach(tool => {
+      L.marker([tool.lat, tool.lng])
+        .addTo(map)
+        .bindPopup(`<strong>${tool.name}</strong><br>${tool.detail}`);
+    });
+  </script>
 </body>
 </html>
