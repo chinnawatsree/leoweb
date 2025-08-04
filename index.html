@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leonics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex flex-col md:flex-row h-screen">
+
+  <!-- Sidebar -->
+  <aside class="hidden md:flex w-64 bg-gray-800 text-white flex-col p-4">
+
+    <header class="mb-6">
+    <h2 class="text-5xl font-bold mb-6">MENU</h2>
+    </header>
+
+    <nav aria-label="menu" class="flex-1 overflow-auto">
+      <ul class="space-y-2">
+        <li>
+          <a href="home.php" target="content-frame"
+             class="flex items-center hover:bg-gray-700 p-2 rounded">
+            <span class="mr-2">🏠</span> หน้าหลัก
+          </a>
+        </li>
+        <li>
+          <a href="data.html" target="content-frame"
+             class="flex items-center hover:bg-gray-700 p-2 rounded">
+            <span class="mr-2">📊</span> สถิติ
+          </a>
+        </li>
+        <li>
+          <a href="map.html" target="content-frame"
+             class="flex items-center hover:bg-gray-700 p-2 rounded">
+            <span class="mr-2"></span> สถิติ
+          </a>
+        </li>
+      <!-- Dropdown -->
+      <li>
+          <button
+            aria-expanded="false"
+            aria-controls="submenu-1"
+            class="flex items-center w-full hover:bg-gray-700 p-2 rounded focus:outline-none"
+            onclick="toggleSubmenu(this);">
+            <span class="mr-2">📁</span> ข้อมูล
+            <svg class="ml-auto w-4 h-4 transform transition-transform"
+                 xmlns="http://www.w3.org/2000/svg"
+                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <ul id="submenu-1" class="mt-1 ml-4 space-y-1 hidden">
+            <li>
+              <a href="data.html" target="content-frame"
+                 class="block hover:bg-gray-700 p-2 rounded">
+                ข้อมูลลูกค้า
+              </a>
+            </li>
+            <li>
+              <a href="product.html" target="content-frame"
+                 class="block hover:bg-gray-700 p-2 rounded">
+                ข้อมูลสินค้า
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="flex justify-between space-x-2 mt-4">
+      <button class="bg-gray-700 px-3 py-2 rounded text-sm">⚙️ Admin</button>
+      <button class="bg-red-600 px-3 py-2 rounded text-sm">🔒 Lockout</button>
+    </div>
+  </aside>
+  <!-- Mobile Toggle Button -->
+<button id="sidebarToggle"
+        class="md:hidden fixed top-4 left-4 z-50 bg-gray-800 text-white p-2 rounded">
+  ☰
+</button>
+
+
+  <!-- Main content area -->
+  <main class="flex-1 overflow-auto min-h-screen p-4">
+  <iframe name="content-frame"
+          src="home.php"
+          class="w-full h-full border-none"></iframe>
+</main>
+
+
+  <script>
+    // Toggle submenu เปิด/ปิด
+    function toggleSubmenu(btn) {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!expanded));
+      const ul = document.getElementById(btn.getAttribute('aria-controls'));
+      ul.classList.toggle('hidden');
+      btn.querySelector('svg').classList.toggle('rotate-180');
+    }
+
+    // Toggle sidebar บนมือถือ
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      document.querySelector('aside').classList.toggle('hidden');
+    });
+  </script>
+</body>
+</html>
