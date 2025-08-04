@@ -8,11 +8,16 @@
 </head>
 <body class="flex flex-col md:flex-row h-screen">
 
-  <!-- Sidebar -->
-  <aside class="hidden md:flex md:static fixed top-0 left-0 h-full z-40 w-64 bg-gray-800 text-white flex-col p-4">
+  <!-- Backdrop -->
+  <div id="backdrop"
+       class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+       onclick="closeSidebar()"></div>
 
+  <!-- Sidebar -->
+  <aside id="sidebar"
+         class="fixed top-0 left-0 h-full w-64 bg-gray-800 text-white flex-col p-4 z-40 transform -translate-x-full transition-transform duration-300 md:translate-x-0 md:static md:flex">
     <header class="mb-6">
-    <h2 class="text-5xl font-bold mb-6 ">MENU</h2>
+      <h2 class="text-5xl font-bold mb-6">MENU</h2>
     </header>
 
     <nav aria-label="menu" class="flex-1 overflow-auto">
@@ -32,11 +37,11 @@
         <li>
           <a href="map.html" target="content-frame"
              class="flex items-center hover:bg-gray-700 p-2 rounded">
-            <span class="mr-2"></span> สถิติ
+            <span class="mr-2">🗺️</span> แผนที่
           </a>
         </li>
-      <!-- Dropdown -->
-      <li>
+        <!-- Dropdown -->
+        <li>
           <button
             aria-expanded="false"
             aria-controls="submenu-1"
@@ -73,23 +78,22 @@
       <button class="bg-red-600 px-3 py-2 rounded text-sm">🔒 Lockout</button>
     </div>
   </aside>
-  <!-- Mobile Toggle Button -->
-<button id="sidebarToggle"
-        class="md:hidden fixed top-4 left-4 z-50 bg-gray-800 text-white p-2 rounded">
-  ☰
-</button>
 
+  <!-- Mobile Toggle Button -->
+  <button id="sidebarToggle"
+          class="md:hidden fixed top-4 left-4 z-50 bg-gray-800 text-white p-2 rounded">
+    ☰
+  </button>
 
   <!-- Main content area -->
   <main class="flex-1 overflow-auto p-4">
-  <iframe name="content-frame"
-        src="home.html"
-        class="w-full h-[calc(100vh-2rem)] border-none"></iframe>
-</main>
+    <iframe name="content-frame"
+            src="home.html"
+            class="w-full h-[calc(100vh-2rem)] border-none"></iframe>
+  </main>
 
-
+  <!-- Script -->
   <script>
-    // Toggle submenu เปิด/ปิด
     function toggleSubmenu(btn) {
       const expanded = btn.getAttribute('aria-expanded') === 'true';
       btn.setAttribute('aria-expanded', String(!expanded));
@@ -98,10 +102,21 @@
       btn.querySelector('svg').classList.toggle('rotate-180');
     }
 
-    // Toggle sidebar บนมือถือ
-    document.getElementById('sidebarToggle').addEventListener('click', () => {
-      document.querySelector('aside').classList.toggle('hidden');
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('backdrop');
+    const toggleBtn = document.getElementById('sidebarToggle');
+
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.remove('-translate-x-full');
+      backdrop.classList.remove('hidden');
+      toggleBtn.classList.add('hidden');
     });
+
+    function closeSidebar() {
+      sidebar.classList.add('-translate-x-full');
+      backdrop.classList.add('hidden');
+      toggleBtn.classList.remove('hidden');
+    }
   </script>
 </body>
 </html>
