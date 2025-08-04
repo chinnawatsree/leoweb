@@ -1,94 +1,101 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ตารางข้อมูล</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UPS Monitoring</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-6">
+<body class="bg-gray-100 p-4 sm:p-6">
 
-  <!-- Filter Section -->
-  <div class="bg-white p-6 rounded shadow mb-6">
-    <h2 class="text-xl font-bold mb-4">เลือกภูมิภาคและสถานะ</h2>
+  <div class="max-w-screen-xl mx-auto bg-white rounded-xl shadow p-4 sm:p-6">
+    <h1 class="text-xl sm:text-2xl font-bold mb-4">🔌 UPS Monitoring System</h1>
 
-    <!-- Region Buttons -->
-    <div class="grid grid-cols-7 gap-2 mb-4">
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded" href="map.html">ภาคเหนือ</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">ภาคกลาง</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">ภาคตะวันออกเฉียงเหนือ</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">ภาคใต้</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">ภาคตะวันตก</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">ภาคตะวันออก</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">กรุงเทพฯ</button>
+    <!-- Filter Bar -->
+    <div class="mb-4 space-y-3">
 
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">อยุธยา</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">ชลบุรี</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">นครราชสีมา</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">สุราษฎร์ธานี</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">เชียงใหม่</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">สงขลา</button>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">อื่น ๆ</button>
+      <!-- Region Buttons (2 rows) -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">North1</button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">North2</button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Central</button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">East</button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">West</button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">South</button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Bangkok</button>
+
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Chiang Mai</button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Chiang Rai</button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Khon Kaen</button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Chonburi</button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Phuket</button>
+        <button class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Songkhla</button>
+        <button class="bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded">ทั้งหมด</button>
+      </div>
+
+      <!-- Status Filter Dropdown -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-3">
+        <label for="status" class="text-sm font-medium mb-1 sm:mb-0">สถานะ:</label>
+        <select id="status" class="w-full sm:w-auto border border-gray-300 rounded px-3 py-2">
+          <option value="">-- แสดงทั้งหมด --</option>
+          <option value="ใช้งาน">ใช้งาน</option>
+          <option value="ไม่ใช้งาน">ไม่ใช้งาน</option>
+        </select>
+      </div>
     </div>
 
-    <!-- Dropdown for Status -->
-    <div class="flex items-center space-x-3">
-      <label for="status" class="text-gray-700 font-medium">สถานะ:</label>
-      <select id="status" class="border border-gray-300 rounded px-3 py-1">
-        <option value="">ทั้งหมด</option>
-        <option value="ใช้งาน">ใช้งาน</option>
-        <option value="ไม่ใช้งาน">ไม่ใช้งาน</option>
-      </select>
+    <!-- Table -->
+    <div class="overflow-x-auto">
+      <table class="w-full table-auto border border-gray-300 text-sm">
+        <thead class="bg-gray-100 text-gray-700 text-left">
+          <tr>
+            <th class="px-3 py-2 border">Region</th>
+            <th class="px-3 py-2 border">Province</th>
+            <th class="px-3 py-2 border">PEA</th>
+            <th class="px-3 py-2 border">UPS ID</th>
+            <th class="px-3 py-2 border">Last Signal</th>
+            <th class="px-3 py-2 border">Event</th>
+            <th class="px-3 py-2 border">Input (V)</th>
+            <th class="px-3 py-2 border">Output (V)</th>
+            <th class="px-3 py-2 border">Battery T (°C)</th>
+            <th class="px-3 py-2 border">Battery V</th>
+            <th class="px-3 py-2 border">UPS</th>
+            <th class="px-3 py-2 border">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Mock row -->
+          <tr class="hover:bg-gray-50">
+            <td class="border px-3 py-2">North1</td>
+            <td class="border px-3 py-2">Chiang Mai</td>
+            <td class="border px-3 py-2">PEA-CMI-N1</td>
+            <td class="border px-3 py-2">UPS199</td>
+            <td class="border px-3 py-2">2025-08-04 08:58</td>
+            <td class="border px-3 py-2">Normal</td>
+            <td class="border px-3 py-2">233.4</td>
+            <td class="border px-3 py-2">220.5</td>
+            <td class="border px-3 py-2">19.3</td>
+            <td class="border px-3 py-2">81.45</td>
+            <td class="border px-3 py-2">28</td>
+            <td class="border px-3 py-2 text-green-600">ใช้งาน</td>
+          </tr>
+          <tr class="hover:bg-gray-50">
+            <td class="border px-3 py-2">North1</td>
+            <td class="border px-3 py-2">Chiang Rai</td>
+            <td class="border px-3 py-2">PEA-CRI-MaeSai</td>
+            <td class="border px-3 py-2">UPS060</td>
+            <td class="border px-3 py-2">2025-08-04 08:59</td>
+            <td class="border px-3 py-2">Normal</td>
+            <td class="border px-3 py-2">228.6</td>
+            <td class="border px-3 py-2">220.5</td>
+            <td class="border px-3 py-2">29.3</td>
+            <td class="border px-3 py-2">81.25</td>
+            <td class="border px-3 py-2">38</td>
+            <td class="border px-3 py-2 text-red-600">ไม่ใช้งาน</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-  </div>
-
-  <!-- Data Table -->
-  <div class="overflow-auto bg-white rounded shadow">
-    <table class="min-w-full divide-y divide-gray-200 text-sm">
-      <thead class="bg-gray-100 text-gray-800">
-        <tr>
-          <th class="px-4 py-2 border">ID</th>
-          <th class="px-4 py-2 border">ชื่อ</th>
-          <th class="px-4 py-2 border">นามสกุล</th>
-          <th class="px-4 py-2 border">เพศ</th>
-          <th class="px-4 py-2 border">อายุ</th>
-          <th class="px-4 py-2 border">โทรศัพท์</th>
-          <th class="px-4 py-2 border">อีเมล</th>
-          <th class="px-4 py-2 border">ที่อยู่</th>
-          <th class="px-4 py-2 border">จังหวัด</th>
-          <th class="px-4 py-2 border">รหัสไปรษณีย์</th>
-          <th class="px-4 py-2 border">วันที่สมัคร</th>
-          <th class="px-4 py-2 border">สถานะ</th>
-          <th class="px-4 py-2 border"></th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200">
-        <tr class="hover:bg-gray-50">
-          <td class="px-4 py-2 border text-center">1</td>
-          <td class="px-4 py-2 border">สมชาย</td>
-          <td class="px-4 py-2 border">ใจดี</td>
-          <td class="px-4 py-2 border text-center">ชาย</td>
-          <td class="px-4 py-2 border text-center">35</td>
-          <td class="px-4 py-2 border">0812345678</td>
-          <td class="px-4 py-2 border">
-            <a href="somchai.html" class="text-blue-600 hover:underline">
-              somchai@example.com
-            </a>
-          </td>
-          <td class="px-4 py-2 border">123 ถ.สุขสันต์</td>
-          <td class="px-4 py-2 border">กรุงเทพฯ</td>
-          <td class="px-4 py-2 border text-center">10110</td>
-          <td class="px-4 py-2 border text-center">2025-08-01</td>
-          <td class="px-4 py-2 border text-green-600 text-center">ใช้งาน</td>
-          <td class="px-4 py-2 border text-center space-x-1">
-            <button class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded">ดู</button>
-            <button class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs px-3 py-1 rounded">แก้ไข</button>
-            <button class="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded">ลบ</button>
-          </td>
-        </tr>
-        <!-- เพิ่มแถวอื่น ๆ ที่นี่ -->
-      </tbody>
-    </table>
   </div>
 
 </body>
