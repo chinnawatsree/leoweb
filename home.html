@@ -8,22 +8,24 @@
   <style>
     #map { height: 500px; width: 100%; }
     body { font-family: sans-serif; margin: 0; padding: 1rem; }
+
     .popup-btn {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 6px 12px;
-  background-color: #38bdf8; /* ฟ้าคราม */
-  color: #ffffff;            /* ขาวสว่าง */
-  text-decoration: none;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  transition: background-color 0.2s ease;
-}
-.popup-btn:hover {
-  background-color: #0ea5e9; /* ฟ้าครามเข้มขึ้นเมื่อ hover */
-}
+      display: inline-block;
+      margin-top: 8px;
+      padding: 6px 12px;
+      background-color: #38bdf8; /* ฟ้าคราม */
+      color: #ffffff;            /* ขาวสว่าง */
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      transition: background-color 0.2s ease;
+    }
+
+    .popup-btn:hover {
+      background-color: #0ea5e9;
+    }
 
     .status {
       font-weight: bold;
@@ -32,9 +34,15 @@
       font-size: 0.8rem;
       display: inline-block;
     }
-    .status.normal { background-color: #10b981; color: white; }     /* ปกติ */
-    .status.warning { background-color: #f59e0b; color: white; }    /* ต้องตรวจสอบ */
-    .status.error { background-color: #ef4444; color: white; }      /* ขัดข้อง */
+
+    .status.normal { background-color: #10b981; color: white; }
+    .status.warning { background-color: #f59e0b; color: white; }
+    .status.error { background-color: #ef4444; color: white; }
+
+    /* บังคับให้ popup ใช้ style สีข้อความของเรา */
+    .leaflet-popup-content .popup-btn {
+      color: #ffffff !important;
+    }
   </style>
 </head>
 <body>
@@ -49,7 +57,6 @@
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // ข้อมูลเครื่องมือ
     const tools = [
       {
         id: 1,
@@ -81,15 +88,36 @@
     ];
 
     tools.forEach(tool => {
-      const popupContent = `
-        <strong>${tool.name}</strong><br>
-        <span class="status ${tool.statusClass}">${tool.status}</span><br>
-        <small>อัปเดตล่าสุด: ${tool.updated}</small><br>
-        <a href="data.html?id=${tool.id}" class="popup-btn" target="content-frame">ดูข้อมูล</a>
-      `;
+      // สร้าง popup DOM
+      const div = document.createElement('div');
+
+      const title = document.createElement('strong');
+      title.textContent = tool.name;
+      div.appendChild(title);
+      div.appendChild(document.createElement('br'));
+
+      const statusSpan = document.createElement('span');
+      statusSpan.textContent = tool.status;
+      statusSpan.className = `status ${tool.statusClass}`;
+      div.appendChild(statusSpan);
+      div.appendChild(document.createElement('br'));
+
+      const small = document.createElement('small');
+      small.textContent = `อัปเดตล่าสุด: ${tool.updated}`;
+      div.appendChild(small);
+      div.appendChild(document.createElement('br'));
+
+      const link = document.createElement('a');
+      link.href = `data.html?id=${tool.id}`;
+      link.textContent = 'ดูข้อมูล';
+      link.className = 'popup-btn';
+      link.target = 'content-frame';
+      div.appendChild(link);
+
+      // เพิ่ม marker และ popup
       L.marker([tool.lat, tool.lng])
         .addTo(map)
-        .bindPopup(popupContent);
+        .bindPopup(div);
     });
   </script>
 </body>
