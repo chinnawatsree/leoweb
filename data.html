@@ -22,7 +22,6 @@
         <button onclick="filterRegion('West')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">West</button>
         <button onclick="filterRegion('South')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">South</button>
         <button onclick="filterRegion('Bangkok')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Bangkok</button>
-
         <button onclick="filterRegion('Chiang Mai')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Chiang Mai</button>
         <button onclick="filterRegion('Chiang Rai')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Chiang Rai</button>
         <button onclick="filterRegion('Khon Kaen')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded">Khon Kaen</button>
@@ -32,14 +31,32 @@
         <button onclick="filterRegion('')" class="bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded">ทั้งหมด</button>
       </div>
 
-      <!-- Status Dropdown -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-3">
-        <label for="status" class="text-sm font-medium mb-1 sm:mb-0">สถานะ:</label>
-        <select id="status" onchange="applyFilters()" class="w-full sm:w-auto border border-gray-300 rounded px-3 py-2">
-          <option value="">-- แสดงทั้งหมด --</option>
-          <option value="ใช้งาน">ใช้งาน</option>
-          <option value="ไม่ใช้งาน">ไม่ใช้งาน</option>
-        </select>
+      <!-- Status, Province, Search Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
+        <!-- Status -->
+        <div>
+          <label for="status" class="text-sm font-medium mb-1 sm:mb-0">Status:</label>
+          <select id="status" onchange="applyFilters()" class="w-full sm:w-auto border border-gray-300 rounded px-3 py-2">
+            <option value="">-- แสดงทั้งหมด --</option>
+            <option value="ใช้งาน">ใช้งาน</option>
+            <option value="ไม่ใช้งาน">ไม่ใช้งาน</option>
+          </select>
+        </div>
+
+        <!-- Province -->
+        <div>
+          <label for="province" class="text-sm font-medium mb-1 sm:mb-0">Province:</label>
+          <select id="province" onchange="applyFilters()" class="w-full sm:w-auto border border-gray-300 rounded px-3 py-2">
+            <option value="">-- แสดงทั้งหมด --</option>
+            <!-- เติมด้วย JavaScript -->
+          </select>
+        </div>
+
+        <!-- Search by UPS ID -->
+        <div class="flex flex-col">
+          <label for="searchID" class="text-sm font-medium">ค้นหา UPS ID:</label>
+          <input type="text" id="searchID" oninput="applyFilters()" placeholder="เช่น UPS123" class="w-full sm:w-48 border border-gray-300 rounded px-3 py-2">
+        </div>
       </div>
     </div>
 
@@ -63,7 +80,7 @@
           </tr>
         </thead>
         <tbody id="data-body">
-          <!-- ข้อมูลจะถูกเติมด้วย JavaScript -->
+          <!-- Data will be inserted here -->
         </tbody>
       </table>
     </div>
@@ -73,14 +90,30 @@
     let data = [];
     let regionFilter = '';
     let statusFilter = '';
+    let provinceFilter = '';
+    let searchID = '';
 
     function fetchData() {
       fetch('data.php')
         .then(res => res.json())
         .then(json => {
           data = json;
+          populateProvinceDropdown();
           renderTable();
         });
+    }
+
+    function populateProvinceDropdown() {
+      const provinceSelect = document.getElementById('province');
+      const provinces = [...new Set(data.map(row => row.provinces))].sort();
+
+      provinceSelect.innerHTML = '<option value="">-- แสดงทั้งหมด --</option>';
+      provinces.forEach(prov => {
+        const option = document.createElement('option');
+        option.value = prov;
+        option.textContent = prov;
+        provinceSelect.appendChild(option);
+      });
     }
 
     function filterRegion(region) {
@@ -90,6 +123,8 @@
 
     function applyFilters() {
       statusFilter = document.getElementById('status').value;
+      provinceFilter = document.getElementById('province').value;
+      searchID = document.getElementById('searchID').value.trim().toLowerCase();
       renderTable();
     }
 
@@ -100,7 +135,9 @@
       const filtered = data.filter(row => {
         const regionMatch = !regionFilter || row.region === regionFilter || row.provinces === regionFilter;
         const statusMatch = !statusFilter || row.status === statusFilter;
-        return regionMatch && statusMatch;
+        const provinceMatch = !provinceFilter || row.provinces === provinceFilter;
+        const idMatch = !searchID || row.upsID.toLowerCase().includes(searchID);
+        return regionMatch && statusMatch && provinceMatch && idMatch;
       });
 
       filtered.forEach(row => {
