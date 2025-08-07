@@ -1,54 +1,73 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-// ตั้งค่าการเชื่อมต่อ MySQL
 $host = "localhost";
 $user = "root";
 $password = "";
 $database = "leonics-testdb";
 
-// เชื่อมต่อฐานข้อมูล
 $conn = new mysqli($host, $user, $password, $database);
 $conn->set_charset("utf8");
 
-// ตรวจสอบการเชื่อมต่อ
 if ($conn->connect_error) {
     echo json_encode(["error" => "เชื่อมต่อฐานข้อมูลไม่สำเร็จ: " . $conn->connect_error]);
     exit();
 }
 
-// สร้างคำสั่ง SQL
-$sql = "SELECT * FROM customer";
+$pea_code_id = isset($_GET['pea_code_id']) ? intval($_GET['pea_code_id']) : 0;
+
+// SQL พร้อม WHERE ถ้ามี pea_code_id
+$sql = "
+SELECT 
+    d.ups_id,
+    d.status,
+    d.last_signal_updated,
+    d.last_event,
+    d.input_voltage,
+    d.output_voltage,
+    d.battery_temp,
+    d.battery_voltage,
+    d.ups_temp,
+    s.subregion_name,
+    r.region_name,
+    p.pea_code_name
+FROM 
+    ups_devices d
+JOIN 
+    subregions s ON d.subregion_id = s.subregion_id
+JOIN 
+    regions r ON d.region_id = r.region_id
+JOIN 
+    peacodes p ON d.pea_code_id = p.pea_code_id
+";
+
+// ถ้ามี pea_code_id ค่อยใส่เงื่อนไข
+if ($pea_code_id > 0) {
+    $sql .= " WHERE d.pea_code_id = $pea_code_id";
+}
+
 $result = $conn->query($sql);
 
-// ตรวจสอบว่า query สำเร็จไหม
 if (!$result) {
     echo json_encode(["error" => "ไม่สามารถดึงข้อมูลได้: " . $conn->error]);
     $conn->close();
     exit();
 }
 
-// เตรียมข้อมูลออกเป็น JSON
 $data = [];
 while ($row = $result->fetch_assoc()) {
-    // ตรวจสอบและแปลงค่าจาก binary status เป็น readable
-    // สมมุติว่า field status เป็น tinyint(1) หรือ boolean
-    $status = $row['status'];
-    
-    if ($status === null) {
-        $row['status'] = 'ไม่ทราบ';
-    } else if ($status == 0 || $status === "\x00") {
-        $row['status'] = 'ไม่ใช้งาน';
-    } else {
-        $row['status'] = 'ใช้งาน';
+    // แปลง status จากตัวเลขเป็นข้อความ
+    switch ($row['status']) {
+        case 0: $row['status'] = 'Comm Error'; break;
+        case 1: $row['status'] = 'Minor'; break;
+        case 2: $row['status'] = 'Major'; break;
+        case 3: $row['status'] = 'Normal'; break;
+        default: $row['status'] = 'Unknown';
     }
 
     $data[] = $row;
 }
 
-// ส่งผลลัพธ์ JSON
 echo json_encode($data, JSON_UNESCAPED_UNICODE);
-
-// ปิดการเชื่อมต่อ
 $conn->close();
 ?>

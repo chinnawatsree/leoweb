@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>รายละเอียด UPS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+  <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-4">รายละเอียด UPS</h1>
+
+    <div id="ups-detail">
+      กำลังโหลดข้อมูล...
+    </div>
+
+    <button onclick="window.history.back()" class="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+      กลับ
+    </button>
+  </div>
+
+<script>
+  // ดึง ups_id จาก URL query string
+  function getParam(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+  }
+
+  async function loadUpsDetail() {
+    const upsId = getParam('ups_id');
+    if (!upsId) {
+      document.getElementById('ups-detail').textContent = 'ไม่พบข้อมูล UPS ID';
+      return;
+    }
+
+    try {
+      const response = await fetch(`ups_detail.php?ups_id=${encodeURIComponent(upsId)}`);
+      if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+      const data = await response.json();
+
+      if (!data || Object.keys(data).length === 0) {
+        document.getElementById('ups-detail').textContent = 'ไม่พบข้อมูลสำหรับ UPS ID นี้';
+        return;
+      }
+
+      // แสดงรายละเอียด
+      document.getElementById('ups-detail').innerHTML = `
+        <p><strong>UPS ID:</strong> ${data.ups_id}</p>
+        <p><strong>Region:</strong> ${data.region_name}</p>
+        <p><strong>Province:</strong> ${data.subregion_name}</p>
+        <p><strong>PEA Code:</strong> ${data.pea_code_name}</p>
+        <p><strong>Last Signal:</strong> ${data.last_signal_updated ?? '-'}</p>
+        <p><strong>Event:</strong> ${data.last_event ?? '-'}</p>
+        <p><strong>Input Voltage:</strong> ${data.input_voltage ?? '-'}</p>
+        <p><strong>Output Voltage:</strong> ${data.output_voltage ?? '-'}</p>
+        <p><strong>Battery Temperature:</strong> ${data.battery_temp ?? '-'}</p>
+        <p><strong>Battery Voltage:</strong> ${data.battery_voltage ?? '-'}</p>
+        <p><strong>UPS Temperature:</strong> ${data.ups_temp ?? '-'}</p>
+        <p><strong>Status:</strong> ${data.status}</p>
+      `;
+    } catch (error) {
+      document.getElementById('ups-detail').textContent = error.message;
+    }
+  }
+
+  loadUpsDetail();
+</script>
+</body>
+</html>

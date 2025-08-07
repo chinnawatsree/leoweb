@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Leonics</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -16,60 +16,38 @@
   <!-- Sidebar -->
   <aside id="sidebar"
          class="fixed top-0 left-0 h-full w-64 bg-gray-800 text-white flex-col p-4 z-40 transform -translate-x-full transition-transform duration-300 md:translate-x-0 md:static md:flex">
+
     <header class="mb-6">
       <h2 class="text-5xl font-bold mb-6">MENU</h2>
     </header>
 
     <nav aria-label="menu" class="flex-1 overflow-auto">
-      <ul class="space-y-2">
+      <ul class="space-y-2" id="mainMenu">
+
+        <!-- ปุ่มเมนูเดิม -->
         <li>
           <a href="sitemap.html" target="content-frame"
-             class="flex items-center hover:bg-gray-700 p-2 rounded">
-            <span class="mr-2">🏠</span> Site Map
+             class="flex items-center w-full hover:bg-gray-700 p-2 rounded text-left font-bold text-white">
+            <span class="mr-2">🗺️</span> Site Map
           </a>
         </li>
         <li>
-          <a href="data.html" target="content-frame"
-             class="flex items-center hover:bg-gray-700 p-2 rounded">
+          <a href="data_renew.html" target="content-frame"
+             class="flex items-center w-full hover:bg-gray-700 p-2 rounded text-left font-bold text-white">
             <span class="mr-2">📊</span> DATA
           </a>
         </li>
-        <!-- Dropdown -->
+
+        <!-- เมนู Region/Subregion/PEA Code -->
         <li>
-          <button
-            aria-expanded="false"
-            aria-controls="submenu-1"
-            class="flex items-center w-full hover:bg-gray-700 p-2 rounded focus:outline-none"
-            onclick="toggleSubmenu(this);">
-            <span class="mr-2">📁</span> North1
-            <svg class="ml-auto w-4 h-4 transform transition-transform"
-                 xmlns="http://www.w3.org/2000/svg"
-                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          <ul id="submenu-1" class="mt-1 ml-4 space-y-1 hidden">
-            <li>
-              <a href="data.html" target="content-frame"
-                 class="block hover:bg-gray-700 p-2 rounded">
-                ข้อมูลลูกค้า
-              </a>
-            </li>
-            <li>
-              <a href="product.html" target="content-frame"
-                 class="block hover:bg-gray-700 p-2 rounded">
-                ข้อมูลสินค้า
-              </a>
-            </li>
-          </ul>
+          <div id="regionMenuContainer" class="mt-2"></div>
         </li>
       </ul>
     </nav>
 
     <div class="flex justify-between space-x-2 mt-4">
-      <button class="bg-gray-700 px-3 py-2 rounded text-sm">⚙️ Admin</button>
-      <button class="bg-red-600 px-3 py-2 rounded text-sm">🔒 Lockout</button>
+      <button class="bg-gray-700 px-3 py-2 rounded text-sm flex items-center gap-1">⚙️ Admin</button>
+      <button class="bg-red-600 px-3 py-2 rounded text-sm flex items-center gap-1">🔒 Lockout</button>
     </div>
   </aside>
 
@@ -88,29 +66,131 @@
 
   <!-- Script -->
   <script>
-    function toggleSubmenu(btn) {
-      const expanded = btn.getAttribute('aria-expanded') === 'true';
-      btn.setAttribute('aria-expanded', String(!expanded));
-      const ul = document.getElementById(btn.getAttribute('aria-controls'));
-      ul.classList.toggle('hidden');
-      btn.querySelector('svg').classList.toggle('rotate-180');
+  fetch('peacode_structure.php')
+  .then(res => res.json())
+  .then(data => {
+    const container = document.getElementById('regionMenuContainer');
+    container.innerHTML = '';
+
+    // สร้างกลุ่มใหญ่ เช่น Central, North ตาม prefix ของ region_name
+    const groupedData = {};
+
+    for (const regionName in data) {
+      // หาคำ prefix: เอาเฉพาะตัวอักษรก่อนตัวเลข เช่น Central1 -> Central
+      const prefixMatch = regionName.match(/^[a-zA-Z]+/);
+      const groupName = prefixMatch ? prefixMatch[0] : regionName;
+
+      if (!groupedData[groupName]) {
+        groupedData[groupName] = {};
+      }
+      // ใส่ regionName (เช่น Central1) ลงในกลุ่มนั้น
+      groupedData[groupName][regionName] = data[regionName];
     }
 
-    const sidebar = document.getElementById('sidebar');
-    const backdrop = document.getElementById('backdrop');
-    const toggleBtn = document.getElementById('sidebarToggle');
+    // สร้างเมนูแบบ 3 ชั้น: group > region > pea code
+    for (const groupName in groupedData) {
+      const groupDiv = document.createElement('div');
+      groupDiv.classList.add('mb-2');
 
-    toggleBtn.addEventListener('click', () => {
-      sidebar.classList.remove('-translate-x-full');
-      backdrop.classList.remove('hidden');
-      toggleBtn.classList.add('hidden');
-    });
+      // ปุ่ม group เช่น Central, North
+      const groupBtn = document.createElement('button');
+      groupBtn.className = 'flex items-center w-full hover:bg-gray-700 p-2 rounded text-left font-bold text-white';
+      groupBtn.textContent = groupName;
 
-    function closeSidebar() {
-      sidebar.classList.add('-translate-x-full');
-      backdrop.classList.add('hidden');
-      toggleBtn.classList.remove('hidden');
+      const groupArrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      groupArrow.setAttribute('class', 'ml-auto w-4 h-4 transform transition-transform');
+      groupArrow.setAttribute('fill', 'none');
+      groupArrow.setAttribute('stroke', 'currentColor');
+      groupArrow.setAttribute('viewBox', '0 0 24 24');
+      groupArrow.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />';
+      groupBtn.appendChild(groupArrow);
+
+      const regionUl = document.createElement('ul');
+      regionUl.className = 'mt-1 ml-4 space-y-1 hidden';
+
+      groupBtn.addEventListener('click', () => {
+        regionUl.classList.toggle('hidden');
+        groupArrow.classList.toggle('rotate-180');
+      });
+
+      // วนแสดง region (Central1, Central2, etc)
+      for (const regionName in groupedData[groupName]) {
+        const regionLi = document.createElement('li');
+
+        const regionBtn = document.createElement('button');
+        regionBtn.className = 'flex items-center w-full hover:bg-gray-700 p-2 rounded text-left text-sm text-blue-300 font-semibold';
+        regionBtn.textContent = regionName;
+
+        const regionArrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        regionArrow.setAttribute('class', 'ml-auto w-4 h-4 transform transition-transform');
+        regionArrow.setAttribute('fill', 'none');
+        regionArrow.setAttribute('stroke', 'currentColor');
+        regionArrow.setAttribute('viewBox', '0 0 24 24');
+        regionArrow.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />';
+        regionBtn.appendChild(regionArrow);
+
+        const peaCodeUl = document.createElement('ul');
+        peaCodeUl.className = 'mt-1 ml-4 space-y-1 hidden';
+
+        regionBtn.addEventListener('click', () => {
+          peaCodeUl.classList.toggle('hidden');
+          regionArrow.classList.toggle('rotate-180');
+        });
+
+        // สร้างลิงก์ pea code
+        groupedData[groupName][regionName].forEach(pea => {
+          const peaLi = document.createElement('li');
+          const peaA = document.createElement('a');
+          peaA.href = `data_renew.html?pea_code_id=${pea.pea_code_id}`;
+          peaA.target = 'content-frame';
+          peaA.textContent = pea.pea_code_name;
+          peaA.className = 'block hover:bg-gray-700 p-2 rounded cursor-pointer text-sm text-gray-400 hover:text-white';
+
+          peaLi.appendChild(peaA);
+          peaCodeUl.appendChild(peaLi);
+        });
+
+        regionLi.appendChild(regionBtn);
+        regionLi.appendChild(peaCodeUl);
+        regionUl.appendChild(regionLi);
+      }
+
+      groupDiv.appendChild(groupBtn);
+      groupDiv.appendChild(regionUl);
+      container.appendChild(groupDiv);
     }
-  </script>
+  })
+  .catch(e => console.error(e));
+
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('backdrop');
+  const toggleBtn = document.getElementById('sidebarToggle');
+
+  function openSidebar() {
+    sidebar.classList.remove('-translate-x-full');
+    backdrop.classList.remove('hidden');
+  }
+
+  function closeSidebar() {
+    sidebar.classList.add('-translate-x-full');
+    backdrop.classList.add('hidden');
+  }
+
+  toggleBtn.addEventListener('click', openSidebar);
+  backdrop.addEventListener('click', closeSidebar);
+
+  toggleBtn.addEventListener('click', () => {
+    sidebar.classList.remove('-translate-x-full');
+    backdrop.classList.remove('hidden');
+    toggleBtn.classList.add('hidden'); // ซ่อนปุ่ม
+  });
+
+  function closeSidebar() {
+    sidebar.classList.add('-translate-x-full');
+    backdrop.classList.add('hidden');
+    toggleBtn.classList.remove('hidden'); // แสดงปุ่ม
+  }
+</script>
+
 </body>
 </html>

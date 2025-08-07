@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>UPS Monitoring</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+  <div class="max-w-full mx-auto">
+    <h1 class="text-2xl font-bold mb-4">UPS Monitoring</h1>
+
+    <!-- ปุ่มเลือก Region -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-4">
+      <button onclick="setRegionFilter('North1')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">North1</button>
+      <button onclick="setRegionFilter('North2')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">North2</button>
+      <button onclick="setRegionFilter('North3')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">North3</button>
+      <button onclick="setRegionFilter('Northeast1')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">Northeast1</button>
+      <button onclick="setRegionFilter('Northeast2')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">Northeast2</button>
+      <button onclick="setRegionFilter('Northeast3')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">Northeast3</button>
+      <button onclick="setRegionFilter('Central1')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">Central1</button>
+      <button onclick="setRegionFilter('Central2')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">Central2</button>
+      <button onclick="setRegionFilter('Central3')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">Central3</button>
+      <button onclick="setRegionFilter('Headquarters')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">Headquarters</button>
+      <button onclick="setRegionFilter('South1')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">South1</button>
+      <button onclick="setRegionFilter('South2')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">South2</button>
+      <button onclick="setRegionFilter('South3')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">South3</button>
+      <button onclick="setRegionFilter('SparePart')" class="region-btn bg-blue-500 text-white rounded px-3 py-1 hover:bg-blue-600">SparePart</button>
+      <button onclick="clearFiltersAndReload('')" class="region-btn bg-gray-400 text-white rounded px-3 py-1 hover:bg-gray-500">ทั้งหมด</button>
+    </div>
+
+    <!-- Filters และ Search -->
+    <div class="flex flex-col md:flex-row items-start md:items-center gap-2 mb-4">
+      <input id="searchInput" type="text" placeholder="ค้นหา UPS ID, Province, หรือ PEA" class="border rounded px-3 py-2 w-full md:w-1/3" />
+
+      <select id="subregionFilter" class="border rounded px-3 py-2">
+        <option value="">-- Province --</option>
+      </select>
+
+      <select id="statusFilter" class="border rounded px-3 py-2">
+        <option value="">-- Status --</option>
+        <option value="Normal">Normal</option>
+        <option value="Minor">Minor</option>
+        <option value="Major">Major</option>
+        <option value="Comm Error">Comm Error</option>
+      </select>
+
+      <div id="dataCount" class="mb-2 text-gray-600 font-medium">
+      แสดงทั้งหมด 0 รายการ
+      </div>
+
+    </div>
+
+      <!-- Loading Screen -->
+  <div id="loadingScreen" class="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 hidden">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid mx-auto mb-4"></div>
+      <p class="text-gray-700 text-lg">กำลังโหลดข้อมูล...</p>
+    </div>
+  </div>
+
+    <!-- ตารางข้อมูล -->
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white shadow rounded border text-xs leading-relaxed">
+        <thead class="bg-gray-200 text-xs font-semibold">
+          <tr class="text-left">
+            <th class="py-1 px-2 border">Region</th>
+            <th class="py-1 px-2 border">Province</th>
+            <th class="py-1 px-2 border">PEA</th>
+            <th class="py-1 px-2 border">UPS ID</th>
+            <th class="py-1 px-2 border">Last Signal</th>
+            <th class="py-1 px-2 border">Event</th>
+            <th class="py-1 px-2 border">Input (V)</th>
+            <th class="py-1 px-2 border">Output (V)</th>
+            <th class="py-1 px-2 border">Battery T</th>
+            <th class="py-1 px-2 border">Battery V</th>
+            <th class="py-1 px-2 border">UPS</th>
+            <th class="py-1 px-2 border">Status</th>
+          </tr>
+        </thead>
+        <tbody id="ups-table">
+          <!-- รายการจะแสดงที่นี่ -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+<script>
+  let fullData = [];
+  let currentRegion = '';
+
+  // ดึงค่า parameter จาก URL
+  function getParam(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+  }
+
+  // ฟังก์ชันแสดงข้อมูลในตาราง
+  function renderTable(data) {
+    const table = document.getElementById("ups-table");
+    table.innerHTML = "";
+
+    data.forEach(item => {
+      
+      const statusClass = item.status === 'Normal' ? 'text-green-600 font-semibold' :
+                          item.status === 'Minor' ? 'text-yellow-600 font-semibold' :
+                          item.status === 'Major' ? 'text-orange-600 font-semibold' :
+                          'text-red-600 font-semibold';
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td class="border px-2 py-1">${item.region_name}</td>
+        <td class="border px-2 py-1">${item.subregion_name}</td>
+        <td class="border px-2 py-1">${item.pea_code_name}</td>
+        <td class="px-4 py-2 text-blue-600 underline">
+          <a href="ups_detail.html?ups_id=${encodeURIComponent(item.ups_id)}" target="content-frame">
+            ${item.ups_id}
+          </a>
+        </td>
+        <td class="border px-2 py-1">${item.last_signal_updated ?? '-'}</td>
+        <td class="border px-2 py-1">${item.last_event ?? '-'}</td>
+        <td class="border px-2 py-1">${item.input_voltage ?? '-'}</td>
+        <td class="border px-2 py-1">${item.output_voltage ?? '-'}</td>
+        <td class="border px-2 py-1">${item.battery_temp ?? '-'}</td>
+        <td class="border px-2 py-1">${item.battery_voltage ?? '-'}</td>
+        <td class="border px-2 py-1">${item.ups_temp ?? '-'}</td>
+        <td class="border px-2 py-1 ${statusClass}">${item.status}</td>
+      `;
+      table.appendChild(row);
+    });
+  }
+
+  // ฟังก์ชันกรองข้อมูลจาก filter และ search
+  function applyFilters() {
+  const search = document.getElementById("searchInput").value.toLowerCase();
+  const subregion = document.getElementById("subregionFilter").value;
+  const statusFilter = document.getElementById("statusFilter").value;
+
+  const filtered = fullData.filter(item => {
+    const matchRegion = currentRegion === '' || item.region_name === currentRegion;
+    const matchSubregion = subregion === '' || item.subregion_name === subregion;
+    const matchStatus = statusFilter === '' || item.status === statusFilter;
+
+    const matchSearch =
+      item.ups_id.toLowerCase().includes(search) ||
+      item.subregion_name.toLowerCase().includes(search) ||
+      item.pea_code_name.toLowerCase().includes(search);
+
+    return matchRegion && matchSubregion && matchStatus && matchSearch;
+  });
+
+  renderTable(filtered);
+
+  // 👇 เพิ่มส่วนนี้เพื่อนับข้อมูลที่แสดง
+  const countDisplay = document.getElementById("dataCount");
+  if (countDisplay) {
+    countDisplay.textContent = `แสดงทั้งหมด ${filtered.length} รายการ`;
+  }
+}
+
+
+  // ฟังก์ชันตั้งค่าและกรองข้อมูลเมื่อคลิกปุ่ม Region
+  function setRegionFilter(region) {
+  currentRegion = region;
+
+  // ล้าง pea_code_id ออกจาก URL (เผื่อกดมาจาก sidebar)
+  const url = new URL(window.location);
+  url.searchParams.delete('pea_code_id');
+  window.history.replaceState({}, '', url);
+
+  // โหลดข้อมูลใหม่ทั้งหมดจาก data.php (ไม่กรอง pea_code_id)
+  fetch('data.php')
+    .then(response => response.json())
+    .then(data => {
+      fullData = data;
+      applyFilters(); // ใช้ข้อมูลใหม่ แล้วกรองด้วย region
+    })
+    .catch(error => {
+      console.error("เกิดข้อผิดพลาดในการโหลดข้อมูล:", error);
+    });
+
+  // อัปเดตปุ่ม region ที่ถูกเลือก
+  document.querySelectorAll('.region-btn').forEach(btn => {
+    if (btn.textContent === region || (region === '' && btn.textContent === 'ทั้งหมด')) {
+      btn.classList.add('bg-blue-700');
+    } else {
+      btn.classList.remove('bg-blue-700');
+    }
+  });
+
+  updateSubregionDropdown();
+}
+
+
+  // อัปเดต dropdown จังหวัด ตาม region ที่เลือก
+  function updateSubregionDropdown() {
+    const subregionSelect = document.getElementById("subregionFilter");
+    subregionSelect.innerHTML = '<option value="">-- Province --</option>';
+
+    let subregionsSet = new Set();
+    fullData.forEach(item => {
+      if (currentRegion === '' || item.region_name === currentRegion) {
+        if (item.subregion_name) subregionsSet.add(item.subregion_name);
+      }
+    });
+
+    [...subregionsSet].sort().forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      subregionSelect.appendChild(opt);
+    });
+
+    subregionSelect.value = '';
+  }
+
+  function clearFiltersAndReload() {
+  // ลบ pea_code_id ออกจาก URL
+  const url = new URL(window.location);
+  url.searchParams.delete('pea_code_id');
+  window.history.replaceState({}, '', url);
+
+  // โหลดข้อมูลใหม่ทั้งหมด
+  currentRegion = '';
+  document.getElementById("subregionFilter").value = '';
+  document.getElementById("statusFilter").value = '';
+  document.getElementById("searchInput").value = '';
+
+  // เคลียร์ปุ่มไฮไลต์
+  document.querySelectorAll('.region-btn').forEach(btn => {
+    if (btn.textContent === 'ทั้งหมด') {
+      btn.classList.add('bg-blue-700');
+    } else {
+      btn.classList.remove('bg-blue-700');
+    }
+  });
+
+  // โหลดข้อมูลใหม่ทั้งหมด
+  loadData();
+}
+
+function showLoading() {
+  console.log("🔵 Show Loading");
+  document.getElementById("loadingScreen").classList.remove("hidden");
+}
+
+function hideLoading() {
+  console.log("⚪ Hide Loading");
+  document.getElementById("loadingScreen").classList.add("hidden");
+}
+
+
+function fetchData() {
+  showLoading(); // 👈 เริ่มโหลด
+
+  fetch("data.php")
+    .then(response => response.json())
+    .then(data => {
+      fullData = data;
+      applyFilters();
+    })
+    .catch(error => {
+      console.error("เกิดข้อผิดพลาดในการโหลดข้อมูล:", error);
+    })
+    .finally(() => {
+      hideLoading(); // 👈 โหลดเสร็จ
+    });
+}
+
+  // โหลดข้อมูลจาก PHP พร้อมรองรับ pea_code_id ใน URL
+  function loadData() {
+    showLoading();
+    const peaCodeId = getParam('pea_code_id');
+    let url = 'data.php';
+    if (peaCodeId) {
+      url += '?pea_code_id=' + encodeURIComponent(peaCodeId);
+    }
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        fullData = data;
+
+        // ถ้ามี pea_code_id ให้ตั้ง currentRegion และ subregion ตามข้อมูลชุดแรก
+        if (fullData.length > 0 && peaCodeId) {
+          currentRegion = fullData[0].region_name || '';
+          updateSubregionDropdown();
+
+          document.getElementById('subregionFilter').value = fullData[0].subregion_name || '';
+          
+          // ไฮไลต์ปุ่ม region ที่ตรงกับ currentRegion
+          document.querySelectorAll('.region-btn').forEach(btn => {
+            if (btn.textContent === currentRegion) {
+              btn.classList.add('bg-blue-700');
+            } else {
+              btn.classList.remove('bg-blue-700');
+            }
+          });
+        } else {
+          currentRegion = '';
+          updateSubregionDropdown();
+        }
+
+        applyFilters();
+      })
+      .catch(err => console.error('โหลดข้อมูลผิดพลาด:', err))
+      .finally(() => {
+      hideLoading(); // 👈 ซ่อนหลังเสร็จ
+      });
+  }
+
+  // Event listeners สำหรับฟิลเตอร์และค้นหา
+  document.getElementById("searchInput").addEventListener("input", applyFilters);
+  document.getElementById("subregionFilter").addEventListener("change", applyFilters);
+  document.getElementById("statusFilter").addEventListener("change", applyFilters);
+
+  // เริ่มโหลดข้อมูลเมื่อเปิดหน้า
+  loadData();
+
+</script>
+</body>
+</html>
