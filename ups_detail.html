@@ -2,68 +2,211 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>รายละเอียด UPS</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%);
+    }
+    .card {
+      @apply bg-white p-6 rounded-2xl shadow-lg transition-transform duration-200 hover:scale-105 hover:shadow-2xl;
+      border: 1px solid #e5e7eb;
+    }
+    .text-label {
+      @apply text-xs text-gray-500 font-medium tracking-wide uppercase;
+      letter-spacing: 0.05em;
+    }
+    .text-title {
+      @apply text-2xl font-bold text-indigo-700;
+    }
+    .flex-center {
+      @apply flex items-center;
+    }
+    #dashboard-content .card {
+      background: linear-gradient(120deg, #f8fafc 80%, #e0e7ff 100%);
+    }
+    #dashboard-content .text-4xl {
+      @apply text-5xl text-indigo-600 drop-shadow;
+    }
+    #dashboard-content .text-xl {
+      @apply text-2xl text-indigo-700;
+    }
+    #dashboard-content .bg-gray-100 {
+      background: linear-gradient(90deg, #f1f5f9 60%, #e0e7ff 100%);
+    }
+    #status.text-green-500 {
+      @apply bg-green-100 px-3 py-1 rounded-full;
+    }
+    #status.text-red-500 {
+      @apply bg-red-100 px-3 py-1 rounded-full;
+    }
+    canvas#battery-chart {
+      background: #fff;
+      border-radius: 1rem;
+      box-shadow: 0 2px 8px 0 #e0e7ff;
+      padding: 1rem;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 p-4">
-  <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold mb-4">รายละเอียด UPS</h1>
+<body class="bg-gradient-to-br from-indigo-100 via-blue-50 to-white min-h-screen p-6">
+  <div class="max-w-6xl mx-auto">
+    <header class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div class="card flex flex-col items-start">
+        <span class="text-label mb-1">PEA site name</span>
+        <span id="site-name" class="text-title">-</span>
+      </div>
+      <div class="card flex flex-col items-start">
+        <span class="text-label mb-1">UPS ID</span>
+        <span id="ups-id" class="text-title">-</span>
+      </div>
+      <div class="card flex flex-col items-start">
+        <span class="text-label mb-1">Last updated</span>
+        <span id="last-updated" class="text-title">-</span>
+      </div>
+      <div class="card flex flex-col items-start">
+        <span class="text-label mb-1">Status</span>
+        <span id="status" class="text-title font-bold">-</span>
+      </div>
+    </header>
 
-    <div id="ups-detail">
-      กำลังโหลดข้อมูล...
-    </div>
-
-    <button onclick="window.history.back()" class="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-      กลับ
-    </button>
+    <main id="dashboard-content" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <!-- Grid line Card -->
+      <div class="card flex flex-col items-center justify-center hover:ring-2 hover:ring-indigo-300 min-h-[160px]">
+        <div class="flex items-center mb-2">
+          <span class="mr-2 text-indigo-400 text-2xl">⚡</span>
+          <span class="text-label tracking-widest">GRID LINE</span>
+        </div>
+        <p id="grid-line" class="text-5xl font-extrabold text-indigo-700 mb-1">-</p>
+        <p id="input-voltage" class="text-xs text-gray-400">Input: -</p>
+      </div>
+      <!-- Load Card -->
+      <div class="card flex flex-col items-center justify-center hover:ring-2 hover:ring-indigo-300 min-h-[160px]">
+        <div class="flex items-center mb-2">
+          <span class="mr-2 text-indigo-400 text-2xl">📈</span>
+          <span class="text-label tracking-widest">% LOAD</span>
+        </div>
+        <p id="load-percentage" class="text-5xl font-extrabold text-indigo-700 mb-1">-</p>
+        <p id="output-voltage" class="text-xs text-gray-400">Output: -</p>
+      </div>
+      <!-- Environment Card -->
+      <div class="card flex flex-col items-center justify-center hover:ring-2 hover:ring-indigo-300 min-h-[160px]">
+        <div class="flex items-center mb-2">
+          <span class="mr-2 text-indigo-400 text-2xl">🌡️</span>
+          <span class="text-label tracking-widest">ENVIRONMENT</span>
+        </div>
+        <p id="environment-temp" class="text-5xl font-extrabold text-indigo-700 mb-1">-</p>
+        <p id="environment-humidity" class="text-xs text-gray-400">Humidity: -</p>
+      </div>
+      <div class="card md:col-span-3 mt-2">
+        <h3 class="text-lg font-semibold mb-4 flex-center text-indigo-700">
+          <span class="mr-2">🔋</span>Battery Health
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+          <div class="bg-gradient-to-br from-indigo-50 to-white p-4 rounded shadow">
+            <p class="text-label">Avg. Voltage</p>
+            <p id="avg-voltage" class="text-xl font-bold text-indigo-700">-</p>
+          </div>
+          <div class="bg-gradient-to-br from-indigo-50 to-white p-4 rounded shadow">
+            <p class="text-label">Total Voltage</p>
+            <p id="total-voltage" class="text-xl font-bold text-indigo-700">-</p>
+          </div>
+          <div class="bg-gradient-to-br from-indigo-50 to-white p-4 rounded shadow">
+            <p class="text-label">Current</p>
+            <p id="current" class="text-xl font-bold text-indigo-700">-</p>
+          </div>
+          <div class="bg-gradient-to-br from-indigo-50 to-white p-4 rounded shadow">
+            <p class="text-label">Batt Temp</p>
+            <p id="batt-temp" class="text-xl font-bold text-indigo-700">-</p>
+          </div>
+        </div>
+        <div class="mt-4 bg-white rounded-xl shadow-lg p-4">
+          <h4 class="text-label mb-2 text-indigo-600">Battery Cell Voltage</h4>
+          <canvas id="battery-chart"></canvas>
+        </div>
+      </div>
+    </main>
   </div>
 
-<script>
-  // ดึง ups_id จาก URL query string
-  function getParam(name) {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(name);
-  }
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const chartColors = {
+      main: 'rgb(54, 162, 235)',
+      max: 'rgb(255, 159, 64)'
+    };
 
-  async function loadUpsDetail() {
-    const upsId = getParam('ups_id');
-    if (!upsId) {
-      document.getElementById('ups-detail').textContent = 'ไม่พบข้อมูล UPS ID';
-      return;
-    }
+    const batteryChartCtx = document.getElementById('battery-chart').getContext('2d');
+    const batteryChart = new Chart(batteryChartCtx, {
+      type: 'bar',
+      data: {
+        labels: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'],
+        datasets: [{
+          label: 'Cell Voltage',
+          data: [0, 0, 0, 0, 0, 0],
+          backgroundColor: chartColors.main,
+        }, {
+          label: 'MAX Cell Voltage',
+          data: [14.5, 14.5, 14.5, 14.5, 14.5, 14.5],
+          backgroundColor: chartColors.max,
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            min: 11,
+            max: 17,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        }
+      }
+    });
 
-    try {
-      const response = await fetch(`ups_detail.php?ups_id=${encodeURIComponent(upsId)}`);
-      if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการโหลดข้อมูล');
-      const data = await response.json();
-
-      if (!data || Object.keys(data).length === 0) {
-        document.getElementById('ups-detail').textContent = 'ไม่พบข้อมูลสำหรับ UPS ID นี้';
+    async function loadDashboardData() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const upsId = urlParams.get('ups_id');
+      
+      if (!upsId) {
+        document.getElementById('dashboard-content').innerHTML = '<p class="text-center text-red-500">ไม่พบข้อมูล UPS ID</p>';
         return;
       }
 
-      // แสดงรายละเอียด
-      document.getElementById('ups-detail').innerHTML = `
-        <p><strong>UPS ID:</strong> ${data.ups_id}</p>
-        <p><strong>Region:</strong> ${data.region_name}</p>
-        <p><strong>Province:</strong> ${data.subregion_name}</p>
-        <p><strong>PEA Code:</strong> ${data.pea_code_name}</p>
-        <p><strong>Last Signal:</strong> ${data.last_signal_updated ?? '-'}</p>
-        <p><strong>Event:</strong> ${data.last_event ?? '-'}</p>
-        <p><strong>Input Voltage:</strong> ${data.input_voltage ?? '-'}</p>
-        <p><strong>Output Voltage:</strong> ${data.output_voltage ?? '-'}</p>
-        <p><strong>Battery Temperature:</strong> ${data.battery_temp ?? '-'}</p>
-        <p><strong>Battery Voltage:</strong> ${data.battery_voltage ?? '-'}</p>
-        <p><strong>UPS Temperature:</strong> ${data.ups_temp ?? '-'}</p>
-        <p><strong>Status:</strong> ${data.status}</p>
-      `;
-    } catch (error) {
-      document.getElementById('ups-detail').textContent = error.message;
-    }
-  }
+      try {
+        const response = await fetch(`ups_detail.php?ups_id=${encodeURIComponent(upsId)}`);
+        const data = await response.json();
 
-  loadUpsDetail();
-</script>
+        if (!response.ok) throw new Error(data.error || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+
+        document.getElementById('site-name').textContent = data.pea_code_name || '-';
+        document.getElementById('ups-id').textContent = data.ups_id || '-';
+        document.getElementById('last-updated').textContent = data.last_signal_updated ?? '-';
+        document.getElementById('status').textContent = data.status || '-';
+        document.getElementById('status').className = 'font-bold ' + (data.status === 'Normal' ? 'text-green-500' : 'text-red-500');
+
+        document.getElementById('grid-line').textContent = `${data.input_voltage ?? '-'} V`;
+        document.getElementById('input-voltage').textContent = `Input: ${data.input_voltage ?? '-'} V`;
+        document.getElementById('load-percentage').textContent = `${data.load_percentage ?? '0'} %`;
+        document.getElementById('output-voltage').textContent = `Output: ${data.output_voltage ?? '-'} V`;
+        document.getElementById('environment-temp').textContent = `${data.ups_temp ?? '-'}°C`;
+        document.getElementById('environment-humidity').textContent = `${data.environment_humidity ?? '-'}%`;
+        
+        document.getElementById('avg-voltage').textContent = `${(data.battery_cell_voltages.reduce((sum, val) => sum + val, 0) / data.battery_cell_voltages.length).toFixed(2)} V`;
+        document.getElementById('total-voltage').textContent = `${data.battery_voltage ?? '-'} V`;
+        document.getElementById('current').textContent = `${data.current ?? '-'} A`;
+        document.getElementById('batt-temp').textContent = `${data.battery_temp ?? '-'}°C`;
+
+        batteryChart.data.datasets[0].data = data.battery_cell_voltages;
+        batteryChart.update();
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        document.getElementById('dashboard-content').innerHTML = `<p class="text-center text-red-500">ไม่สามารถโหลดข้อมูลได้: ${error.message}</p>`;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDashboardData);
+  </script>
 </body>
 </html>
