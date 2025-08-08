@@ -1,54 +1,21 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <title>ตำแหน่งเครื่องมือของลูกค้า</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UPS Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
-    #map { height: 500px; width: 100%; }
-    body { font-family: sans-serif; margin: 0; padding: 1rem; }
-
-    .popup-btn {
-      display: inline-block;
-      margin-top: 8px;
-      padding: 6px 12px;
-      background-color: #38bdf8; /* ฟ้าคราม */
-      color: #ffffff;            /* ขาวสว่าง */
-      text-decoration: none;
-      border-radius: 4px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      transition: background-color 0.2s ease;
-    }
-
-    .popup-btn:hover {
-      background-color: #0ea5e9;
-    }
-
-    .status {
-      font-weight: bold;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      display: inline-block;
-    }
-
-    .status.normal { background-color: #10b981; color: white; }
-    .status.warning { background-color: #f59e0b; color: white; }
-    .status.error { background-color: #ef4444; color: white; }
-
-    /* บังคับให้ popup ใช้ style สีข้อความของเรา */
-    .leaflet-popup-content .popup-btn {
-      color: #ffffff !important;
-    }
+    #map { height: 90vh; width: 100%; }
+    .status.Normal { color: #22c55e; font-weight: bold; }
+    .status.Minor { color: #f59e42; font-weight: bold; }
+    .status.Major { color: #ef4444; font-weight: bold; }
+    .status.Comm\ Error { color: #6b7280; font-weight: bold; }
+    .popup-btn { color: #2563eb; text-decoration: underline; margin-top: 4px; display: inline-block; }
   </style>
 </head>
-<body>
-  <h2>ตำแหน่งเครื่องมือของลูกค้า</h2>
+<body style="margin:0; padding:0;">
   <div id="map"></div>
-
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
     const map = L.map('map').setView([13.736717, 100.523186], 6);
@@ -56,69 +23,117 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
+      let openTooltip = null;
+      let tooltipTimeout;
+      
+    // ดึงข้อมูลและปักหมุด
+    async function loadMapData() {
+      try {
+        const response = await fetch('map_data.php');
+        if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + response.statusText);
+        const tools = await response.json();
 
-    const tools = [
-      {
-        id: 1,
-        name: "เครื่องมือ A",
-        lat: 13.7563,
-        lng: 100.5018,
-        status: "ปกติ",
-        updated: "2025-08-04 14:30",
-        statusClass: "normal"
-      },
-      {
-        id: 2,
-        name: "เครื่องมือ B",
-        lat: 18.7883,
-        lng: 98.9853,
-        status: "ต้องตรวจสอบ",
-        updated: "2025-08-03 09:15",
-        statusClass: "warning"
-      },
-      {
-        id: 3,
-        name: "เครื่องมือ C",
-        lat: 7.9519,
-        lng: 98.3381,
-        status: "ขัดข้อง",
-        updated: "2025-08-02 18:45",
-        statusClass: "error"
+        tools.forEach(tool => {
+          if (tool.latitude && tool.longitude) {
+            // กล่องข้อมูลแบบ card
+            const card = document.createElement('div');
+            card.style.minWidth = '220px';
+            card.style.background = '#fff';
+            card.style.borderRadius = '14px';
+            card.style.boxShadow = '0 2px 8px #e0e7ff';
+            card.style.padding = '16px 14px 12px 14px';
+            card.style.margin = '0';
+            card.style.fontFamily = 'inherit';
+
+            // Site name
+            const site = document.createElement('div');
+            site.textContent = tool.pea_code_name ?? '-';
+            site.style.fontSize = '1.15rem';
+            site.style.fontWeight = 'bold';
+            site.style.color = '#3730a3';
+            site.style.marginBottom = '8px';
+            card.appendChild(site);
+
+            // Status
+            const statusRow = document.createElement('div');
+            statusRow.style.display = 'flex';
+            statusRow.style.alignItems = 'center';
+            statusRow.style.marginBottom = '8px';
+
+            const statusLabel = document.createElement('span');
+            statusLabel.textContent = 'สถานะ: ';
+            statusLabel.style.fontSize = '0.95rem';
+            statusLabel.style.color = '#64748b';
+            statusRow.appendChild(statusLabel);
+
+            const statusSpan = document.createElement('span');
+            statusSpan.textContent = tool.status ?? '-';
+            statusSpan.className = `status ${tool.statusClass}`;
+            statusSpan.style.fontSize = '1.05rem';
+            statusSpan.style.padding = '2px 14px';
+            statusSpan.style.borderRadius = '16px';
+            statusSpan.style.marginLeft = '6px';
+            statusSpan.style.fontWeight = 'bold';
+            statusSpan.style.background = '#f1f5f9';
+            statusRow.appendChild(statusSpan);
+
+            card.appendChild(statusRow);
+
+            // Last update
+            const lastUpdate = document.createElement('div');
+            lastUpdate.textContent = `อัปเดตล่าสุด: ${tool.last_signal_updated ?? '-'}`;
+            lastUpdate.style.fontSize = '0.95rem';
+            lastUpdate.style.color = '#334155';
+            lastUpdate.style.marginBottom = '12px';
+            card.appendChild(lastUpdate);
+
+            // ปุ่มดูข้อมูล
+            const link = document.createElement('a');
+            link.href = `ups_detail.html?ups_id=${tool.ups_id}`;
+            link.textContent = 'ดูข้อมูล';
+            link.className = 'popup-btn';
+            link.target = 'content-frame';
+            link.style.display = 'block';
+            link.style.width = '100%';
+            link.style.textAlign = 'center';
+            link.style.background = '#6366f1';
+            link.style.color = '#fff';
+            link.style.fontWeight = 'bold';
+            link.style.fontSize = '1rem';
+            link.style.padding = '8px 0';
+            link.style.borderRadius = '8px';
+            link.style.marginTop = '4px';
+            link.style.textDecoration = 'none';
+            link.style.transition = 'background 0.2s';
+            link.onmouseover = () => link.style.background = '#4338ca';
+            link.onmouseout = () => link.style.background = '#6366f1';
+            card.appendChild(link);
+
+            const marker = L.marker([tool.latitude, tool.longitude]).addTo(map);
+
+              marker.on('mouseover', function (e) {
+                  if (openTooltip && openTooltip !== this) {
+                      openTooltip.closeTooltip();
+                  }
+                  this.bindTooltip(card, { permanent: true, direction: 'auto', interactive: true }).openTooltip();
+                  openTooltip = this;
+              });
+
+              marker.on('mouseout', function (e) {
+                  // Do nothing on mouseout to keep the tooltip open
+              });
+              
+            marker.addTo(map);
+          }
+        });
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        alert('ไม่สามารถโหลดข้อมูลแผนที่ได้');
       }
-    ];
+    }
 
-    tools.forEach(tool => {
-      // สร้าง popup DOM
-      const div = document.createElement('div');
-
-      const title = document.createElement('strong');
-      title.textContent = tool.name;
-      div.appendChild(title);
-      div.appendChild(document.createElement('br'));
-
-      const statusSpan = document.createElement('span');
-      statusSpan.textContent = tool.status;
-      statusSpan.className = `status ${tool.statusClass}`;
-      div.appendChild(statusSpan);
-      div.appendChild(document.createElement('br'));
-
-      const small = document.createElement('small');
-      small.textContent = `อัปเดตล่าสุด: ${tool.updated}`;
-      div.appendChild(small);
-      div.appendChild(document.createElement('br'));
-
-      const link = document.createElement('a');
-      link.href = `data_renew.html?id=${tool.id}`;
-      link.textContent = 'ดูข้อมูล';
-      link.className = 'popup-btn';
-      link.target = 'content-frame';
-      div.appendChild(link);
-
-      // เพิ่ม marker และ popup
-      L.marker([tool.lat, tool.lng])
-        .addTo(map)
-        .bindPopup(div);
-    });
+    loadMapData();
   </script>
+  
 </body>
 </html>

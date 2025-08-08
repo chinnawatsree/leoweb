@@ -97,10 +97,17 @@
 
   // ฟังก์ชันแสดงข้อมูลในตาราง
   function renderTable(data) {
-    const table = document.getElementById("ups-table");
-    table.innerHTML = "";
+  const table = document.getElementById("ups-table");
+  table.innerHTML = "";
 
-    data.forEach(item => {
+  if (data.length === 0) {
+    const row = document.createElement("tr");
+    row.innerHTML = `<td colspan="12" class="text-center text-gray-400 py-6">ไม่พบข้อมูล</td>`;
+    table.appendChild(row);
+    return;
+  }
+
+  data.forEach(item => {
       
       const statusClass = item.status === 'Normal' ? 'text-green-600 font-semibold' :
                           item.status === 'Minor' ? 'text-yellow-600 font-semibold' :
@@ -182,12 +189,11 @@
   // อัปเดตปุ่ม region ที่ถูกเลือก
   document.querySelectorAll('.region-btn').forEach(btn => {
     if (btn.textContent === region || (region === '' && btn.textContent === 'ทั้งหมด')) {
-      btn.classList.add('bg-blue-700');
+      btn.classList.add('bg-blue-700', 'ring', 'ring-blue-300', 'font-bold');
     } else {
-      btn.classList.remove('bg-blue-700');
+      btn.classList.remove('bg-blue-700', 'ring', 'ring-blue-300', 'font-bold');
     }
   });
-
   updateSubregionDropdown();
 }
 
@@ -229,9 +235,9 @@
   // เคลียร์ปุ่มไฮไลต์
   document.querySelectorAll('.region-btn').forEach(btn => {
     if (btn.textContent === 'ทั้งหมด') {
-      btn.classList.add('bg-blue-700');
+      btn.classList.add('bg-blue-700', 'ring', 'ring-blue-300', 'font-bold');
     } else {
-      btn.classList.remove('bg-blue-700');
+      btn.classList.remove('bg-blue-700', 'ring', 'ring-blue-300', 'font-bold');
     }
   });
 

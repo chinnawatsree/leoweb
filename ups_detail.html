@@ -123,6 +123,33 @@
         <div class="mt-4 bg-white rounded-xl shadow-lg p-4">
           <h4 class="text-label mb-2 text-indigo-600">Battery Cell Voltage</h4>
           <canvas id="battery-chart"></canvas>
+          <!-- กล่องแสดงค่า C1-C6 -->
+          <div class="grid grid-cols-2 md:grid-cols-6 gap-2 mt-4">
+            <div class="flex flex-col items-center bg-indigo-50 rounded-lg p-2">
+              <span class="text-xs text-gray-500">C1</span>
+              <span id="cell-c1" class="font-bold text-lg text-indigo-700">-</span>
+            </div>
+            <div class="flex flex-col items-center bg-indigo-50 rounded-lg p-2">
+              <span class="text-xs text-gray-500">C2</span>
+              <span id="cell-c2" class="font-bold text-lg text-indigo-700">-</span>
+            </div>
+            <div class="flex flex-col items-center bg-indigo-50 rounded-lg p-2">
+              <span class="text-xs text-gray-500">C3</span>
+              <span id="cell-c3" class="font-bold text-lg text-indigo-700">-</span>
+            </div>
+            <div class="flex flex-col items-center bg-indigo-50 rounded-lg p-2">
+              <span class="text-xs text-gray-500">C4</span>
+              <span id="cell-c4" class="font-bold text-lg text-indigo-700">-</span>
+            </div>
+            <div class="flex flex-col items-center bg-indigo-50 rounded-lg p-2">
+              <span class="text-xs text-gray-500">C5</span>
+              <span id="cell-c5" class="font-bold text-lg text-indigo-700">-</span>
+            </div>
+            <div class="flex flex-col items-center bg-indigo-50 rounded-lg p-2">
+              <span class="text-xs text-gray-500">C6</span>
+              <span id="cell-c6" class="font-bold text-lg text-indigo-700">-</span>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -137,29 +164,42 @@
 
     const batteryChartCtx = document.getElementById('battery-chart').getContext('2d');
     const batteryChart = new Chart(batteryChartCtx, {
-      type: 'bar',
       data: {
         labels: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6'],
-        datasets: [{
-          label: 'Cell Voltage',
-          data: [0, 0, 0, 0, 0, 0],
-          backgroundColor: chartColors.main,
-        }, {
-          label: 'MAX Cell Voltage',
-          data: [14.5, 14.5, 14.5, 14.5, 14.5, 14.5],
-          backgroundColor: chartColors.max,
-        }]
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Cell Voltage',
+            data: [0, 0, 0, 0, 0, 0],
+            backgroundColor: chartColors.main,
+            borderRadius: 6,
+            maxBarThickness: 36,
+          },
+          {
+            type: 'bar', // เปลี่ยนจาก 'line' เป็น 'bar'
+            label: 'MAX Cell Voltage',
+            data: [14.5, 14.5, 14.5, 14.5, 14.5, 14.5],
+            backgroundColor: 'rgba(255, 159, 64, 0.25)', // สีโปร่งใส
+            borderColor: chartColors.max,
+            borderWidth: 2,
+            borderRadius: 6,
+            maxBarThickness: 36,
+            barPercentage: 1,
+            categoryPercentage: 1,
+          }
+        ]
       },
       options: {
         responsive: true,
+        plugins: {
+          legend: { position: 'top' }
+        },
         scales: {
           y: {
             beginAtZero: true,
-            min: 11,
-            max: 17,
-            ticks: {
-              stepSize: 1
-            }
+            min: 1,        // เปลี่ยนจาก 11 เป็น 1
+            max: 17,       // คงไว้ที่ 17
+            ticks: { stepSize: 1 }
           }
         }
       }
@@ -180,6 +220,7 @@
 
         if (!response.ok) throw new Error(data.error || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
 
+        // อัปเดตข้อมูลแสดงผล
         document.getElementById('site-name').textContent = data.pea_code_name || '-';
         document.getElementById('ups-id').textContent = data.ups_id || '-';
         document.getElementById('last-updated').textContent = data.last_signal_updated ?? '-';
@@ -188,17 +229,47 @@
 
         document.getElementById('grid-line').textContent = `${data.input_voltage ?? '-'} V`;
         document.getElementById('input-voltage').textContent = `Input: ${data.input_voltage ?? '-'} V`;
-        document.getElementById('load-percentage').textContent = `${data.load_percentage ?? '0'} %`;
+        document.getElementById('load-percentage').textContent = `${data.load_percentage ?? '-'} %`;
         document.getElementById('output-voltage').textContent = `Output: ${data.output_voltage ?? '-'} V`;
         document.getElementById('environment-temp').textContent = `${data.ups_temp ?? '-'}°C`;
         document.getElementById('environment-humidity').textContent = `${data.environment_humidity ?? '-'}%`;
-        
-        document.getElementById('avg-voltage').textContent = `${(data.battery_cell_voltages.reduce((sum, val) => sum + val, 0) / data.battery_cell_voltages.length).toFixed(2)} V`;
-        document.getElementById('total-voltage').textContent = `${data.battery_voltage ?? '-'} V`;
-        document.getElementById('current').textContent = `${data.current ?? '-'} A`;
-        document.getElementById('batt-temp').textContent = `${data.battery_temp ?? '-'}°C`;
+        document.getElementById('current').textContent = data.current ?? '-';
+        document.getElementById('batt-temp').textContent = data.battery_temp ?? '-';
+        document.getElementById('total-voltage').textContent = data.battery_voltage ?? '-';
 
-        batteryChart.data.datasets[0].data = data.battery_cell_voltages;
+        // อัปเดตค่าเฉลี่ยและกราฟ cell voltage
+        let cellVoltages = [];
+        if (Array.isArray(data.battery_cell_voltages) && data.battery_cell_voltages.length === 6) {
+          // ถ้า c1-c6 มีค่า (ไม่ใช่ 0 ทั้งหมด)
+          const hasCell = data.battery_cell_voltages.some(v => parseFloat(v) > 0);
+          if (hasCell) {
+            cellVoltages = data.battery_cell_voltages.map(v => parseFloat(v) || 0);
+          } else if (data.battery_voltage) {
+            // ถ้าไม่มีค่า cell ให้ใช้ battery_voltage/6
+            const v = parseFloat(data.battery_voltage) || 0;
+            cellVoltages = Array(6).fill((v / 6).toFixed(2));
+          } else {
+            cellVoltages = [0,0,0,0,0,0];
+          }
+        } else if (data.battery_voltage) {
+          const v = parseFloat(data.battery_voltage) || 0;
+          cellVoltages = Array(6).fill((v / 6).toFixed(2));
+        } else {
+          cellVoltages = [0,0,0,0,0,0];
+        }
+
+        // อัปเดตกล่องแสดงค่า C1-C6
+        for (let i = 0; i < 6; i++) {
+          document.getElementById(`cell-c${i+1}`).textContent = cellVoltages[i] ?? '-';
+        }
+
+        const avg = cellVoltages.reduce((sum, v) => sum + parseFloat(v), 0) / 6;
+        document.getElementById('avg-voltage').textContent = isNaN(avg) ? '-' : avg.toFixed(2) + ' V';
+
+        batteryChart.data.datasets[0].type = 'bar';
+        batteryChart.data.datasets[1].type = 'bar'; // ให้ max เป็น bar
+        batteryChart.data.datasets[0].data = cellVoltages;
+        batteryChart.data.datasets[1].data = [14.5, 14.5, 14.5, 14.5, 14.5, 14.5];
         batteryChart.update();
       } catch (error) {
         console.error('Error fetching data:', error);
