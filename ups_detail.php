@@ -1,19 +1,7 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-$host = 'localhost';
-$user = 'root';
-$pass = '';
-$dbname = 'leonics-testdb';
-
-$conn = new mysqli($host, $user, $pass, $dbname);
-$conn->set_charset("utf8");
-
-if ($conn->connect_error) {
-    http_response_code(500);
-    echo json_encode(['error' => 'ไม่สามารถเชื่อมต่อฐานข้อมูล: ' . $conn->connect_error]);
-    exit;
-}
+require_once 'db_config.php';
 
 $ups_id = isset($_GET['ups_id']) ? $conn->real_escape_string($_GET['ups_id']) : '';
 
@@ -26,22 +14,26 @@ if (!$ups_id) {
 $sql = "
 SELECT
     d.ups_id,
-    d.status,
+    s.event_name as status,
     d.last_signal_updated,
-    d.last_event,
     d.input_voltage,
     d.output_voltage,
-    d.battery_temp,
-    d.battery_voltage,
+    d.batt_temp as battery_temp,
+    d.sum_batt as battery_voltage,
     d.ups_temp,
-    d.c1, d.c2, d.c3, d.c4, d.c5, d.c6,
+    d.batt_1 as c1, d.batt_2 as c2, d.batt_3 as c3, 
+    d.batt_4 as c4, d.batt_5 as c5, d.batt_6 as c6,
     d.env_temp,
-    d.avg_voltage,
     d.current_voltage,
+    d.output_i_percent as load_percentage,
+    d.RH as environment_humidity,
     p.pea_code_name
-FROM ups_devices d
-JOIN peacodes p ON d.pea_code_id = p.pea_code_id
+FROM ups_data d
+JOIN status_events s ON d.status_id = s.status_id
+JOIN ups_devices dev ON d.ups_id = dev.ups_id
+JOIN peacodes p ON dev.pea_code_id = p.pea_code_id
 WHERE d.ups_id = '$ups_id'
+ORDER BY d.last_signal_updated DESC
 LIMIT 1
 ";
 
@@ -56,17 +48,12 @@ if ($result === FALSE) {
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
     
-    switch ($row['status']) {
-        case 0: $row['status'] = 'Comm Error'; break;
-        case 1: $row['status'] = 'Minor'; break;
-        case 2: $row['status'] = 'Major'; break;
-        case 3: $row['status'] = 'Normal'; break;
-        default: $row['status'] = 'Unknown';
-    }
+    // Status already converted by JOIN with status_events table
+    $status = ucfirst($row['status']);
     
     $data = [
         'ups_id' => $row['ups_id'],
-        'status' => $row['status'],
+        'status' => $status,
         'last_signal_updated' => $row['last_signal_updated'],
         'input_voltage' => $row['input_voltage'],
         'output_voltage' => $row['output_voltage'],
@@ -75,9 +62,8 @@ if ($result->num_rows > 0) {
         'ups_temp' => $row['ups_temp'],
         'pea_code_name' => $row['pea_code_name'],
         'current' => $row['current_voltage'],
-        'load_percentage' => null, // ไม่มีในฐานข้อมูล
-        'environment_humidity' => $row['env_temp'],
-        'avg_voltage' => $row['avg_voltage'],
+        'load_percentage' => $row['load_percentage'],
+        'environment_humidity' => $row['environment_humidity'] ?? $row['env_temp'],
         'battery_cell_voltages' => [
             (float)$row['c1'],
             (float)$row['c2'],

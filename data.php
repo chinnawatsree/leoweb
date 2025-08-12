@@ -1,18 +1,7 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-$host = "localhost";
-$user = "root";
-$password = "";
-$database = "leonics-testdb";
-
-$conn = new mysqli($host, $user, $password, $database);
-$conn->set_charset("utf8");
-
-if ($conn->connect_error) {
-    echo json_encode(["error" => "เชื่อมต่อฐานข้อมูลไม่สำเร็จ: " . $conn->connect_error]);
-    exit();
-}
+require_once 'db_config.php';
 
 $pea_code_id = isset($_GET['pea_code_id']) ? intval($_GET['pea_code_id']) : 0;
 

@@ -1,13 +1,7 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-$host = 'localhost';
-$user = 'root';
-$pass = '';
-$dbname = 'leonics-testdb';
-
-$conn = new mysqli($host, $user, $pass, $dbname);
-$conn->set_charset("utf8");
+require_once 'db_config.php';
 
 $sql = "
 SELECT 
