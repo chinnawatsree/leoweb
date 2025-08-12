@@ -12,6 +12,7 @@ if ($conn->connect_error) {
 $sql = "
 SELECT 
     r.region_name,
+    s.subregion_name,
     p.pea_code_id,
     p.pea_code_name
 FROM 
@@ -20,7 +21,7 @@ JOIN
     subregions s ON p.subregion_id = s.subregion_id
 JOIN 
     regions r ON s.region_id = r.region_id
-ORDER BY r.region_name, p.pea_code_name
+ORDER BY r.region_name, s.subregion_name, p.pea_code_name
 ";
 
 $result = $conn->query($sql);
@@ -35,12 +36,17 @@ $data = [];
 
 while ($row = $result->fetch_assoc()) {
     $region = $row['region_name'];
+    $subregion = $row['subregion_name'];
 
     if (!isset($data[$region])) {
         $data[$region] = [];
     }
 
-    $data[$region][] = [
+    if (!isset($data[$region][$subregion])) {
+        $data[$region][$subregion] = [];
+    }
+
+    $data[$region][$subregion][] = [
         "pea_code_id" => $row["pea_code_id"],
         "pea_code_name" => $row["pea_code_name"]
     ];

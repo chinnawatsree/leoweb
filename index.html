@@ -67,78 +67,102 @@
   <!-- Script -->
   <script>
   fetch('peacode_structure.php')
-  .then(res => res.json())
-  .then(data => {
-    const container = document.getElementById('regionMenuContainer');
-    container.innerHTML = '';
+.then(res => res.json())
+.then(data => {
+  const container = document.getElementById('regionMenuContainer');
+  container.innerHTML = '';
 
-    // สร้างกลุ่มใหญ่ เช่น Central, North ตาม prefix ของ region_name
-    const groupedData = {};
+  // กลุ่มใหญ่เช่น Central, North ตาม prefix ของ region_name
+  const groupedData = {};
 
-    for (const regionName in data) {
-      // หาคำ prefix: เอาเฉพาะตัวอักษรก่อนตัวเลข เช่น Central1 -> Central
-      const prefixMatch = regionName.match(/^[a-zA-Z]+/);
-      const groupName = prefixMatch ? prefixMatch[0] : regionName;
+  for (const regionName in data) {
+    // หาคำ prefix: เอาเฉพาะตัวอักษรก่อนตัวเลข เช่น Central1 -> Central
+    const prefixMatch = regionName.match(/^[a-zA-Z]+/);
+    const groupName = prefixMatch ? prefixMatch[0] : regionName;
 
-      if (!groupedData[groupName]) {
-        groupedData[groupName] = {};
-      }
-      // ใส่ regionName (เช่น Central1) ลงในกลุ่มนั้น
-      groupedData[groupName][regionName] = data[regionName];
+    if (!groupedData[groupName]) {
+      groupedData[groupName] = {};
     }
 
-    // สร้างเมนูแบบ 3 ชั้น: group > region > pea code
-    for (const groupName in groupedData) {
-      const groupDiv = document.createElement('div');
-      groupDiv.classList.add('mb-2');
+    // ใส่ regionName (เช่น Central1) ลงในกลุ่มนั้น
+    groupedData[groupName][regionName] = data[regionName]; // data[regionName] เป็น object ที่ key เป็น subregion
+  }
 
-      // ปุ่ม group เช่น Central, North
-      const groupBtn = document.createElement('button');
-      groupBtn.className = 'flex items-center w-full hover:bg-gray-700 p-2 rounded text-left font-bold text-white';
-      groupBtn.textContent = groupName;
+  for (const groupName in groupedData) {
+    const groupDiv = document.createElement('div');
+    groupDiv.classList.add('mb-2');
 
-      const groupArrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      groupArrow.setAttribute('class', 'ml-auto w-4 h-4 transform transition-transform');
-      groupArrow.setAttribute('fill', 'none');
-      groupArrow.setAttribute('stroke', 'currentColor');
-      groupArrow.setAttribute('viewBox', '0 0 24 24');
-      groupArrow.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />';
-      groupBtn.appendChild(groupArrow);
+    const groupBtn = document.createElement('button');
+    groupBtn.className = 'flex items-center w-full hover:bg-gray-700 p-2 rounded text-left font-bold text-white';
+    groupBtn.textContent = groupName;
 
-      const regionUl = document.createElement('ul');
-      regionUl.className = 'mt-1 ml-4 space-y-1 hidden';
+    const groupArrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    groupArrow.setAttribute('class', 'ml-auto w-4 h-4 transform transition-transform');
+    groupArrow.setAttribute('fill', 'none');
+    groupArrow.setAttribute('stroke', 'currentColor');
+    groupArrow.setAttribute('viewBox', '0 0 24 24');
+    groupArrow.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />';
+    groupBtn.appendChild(groupArrow);
 
-      groupBtn.addEventListener('click', () => {
-        regionUl.classList.toggle('hidden');
-        groupArrow.classList.toggle('rotate-180');
+    const regionUl = document.createElement('ul');
+    regionUl.className = 'mt-1 ml-4 space-y-1 hidden';
+
+    groupBtn.addEventListener('click', () => {
+      regionUl.classList.toggle('hidden');
+      groupArrow.classList.toggle('rotate-180');
+    });
+
+    // วนแสดง region (Central1, Central2, etc)
+    for (const regionName in groupedData[groupName]) {
+      const regionLi = document.createElement('li');
+
+      const regionBtn = document.createElement('button');
+      regionBtn.className = 'flex items-center w-full hover:bg-gray-700 p-2 rounded text-left text-sm text-blue-300 font-semibold';
+      regionBtn.textContent = regionName;
+
+      const regionArrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      regionArrow.setAttribute('class', 'ml-auto w-4 h-4 transform transition-transform');
+      regionArrow.setAttribute('fill', 'none');
+      regionArrow.setAttribute('stroke', 'currentColor');
+      regionArrow.setAttribute('viewBox', '0 0 24 24');
+      regionArrow.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />';
+      regionBtn.appendChild(regionArrow);
+
+      const subregionUl = document.createElement('ul');
+      subregionUl.className = 'mt-1 ml-4 space-y-1 hidden';
+
+      regionBtn.addEventListener('click', () => {
+        subregionUl.classList.toggle('hidden');
+        regionArrow.classList.toggle('rotate-180');
       });
 
-      // วนแสดง region (Central1, Central2, etc)
-      for (const regionName in groupedData[groupName]) {
-        const regionLi = document.createElement('li');
+      // วนแสดง subregion (Province)
+      const subregions = groupedData[groupName][regionName]; // เป็น object subregion => pea_code array
+      for (const subregionName in subregions) {
+        const subregionLi = document.createElement('li');
 
-        const regionBtn = document.createElement('button');
-        regionBtn.className = 'flex items-center w-full hover:bg-gray-700 p-2 rounded text-left text-sm text-blue-300 font-semibold';
-        regionBtn.textContent = regionName;
+        const subregionBtn = document.createElement('button');
+        subregionBtn.className = 'flex items-center w-full hover:bg-gray-700 p-2 rounded text-left text-sm text-green-300 font-medium';
+        subregionBtn.textContent = subregionName;
 
-        const regionArrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        regionArrow.setAttribute('class', 'ml-auto w-4 h-4 transform transition-transform');
-        regionArrow.setAttribute('fill', 'none');
-        regionArrow.setAttribute('stroke', 'currentColor');
-        regionArrow.setAttribute('viewBox', '0 0 24 24');
-        regionArrow.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />';
-        regionBtn.appendChild(regionArrow);
+        const subregionArrow = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        subregionArrow.setAttribute('class', 'ml-auto w-4 h-4 transform transition-transform');
+        subregionArrow.setAttribute('fill', 'none');
+        subregionArrow.setAttribute('stroke', 'currentColor');
+        subregionArrow.setAttribute('viewBox', '0 0 24 24');
+        subregionArrow.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />';
+        subregionBtn.appendChild(subregionArrow);
 
         const peaCodeUl = document.createElement('ul');
         peaCodeUl.className = 'mt-1 ml-4 space-y-1 hidden';
 
-        regionBtn.addEventListener('click', () => {
+        subregionBtn.addEventListener('click', () => {
           peaCodeUl.classList.toggle('hidden');
-          regionArrow.classList.toggle('rotate-180');
+          subregionArrow.classList.toggle('rotate-180');
         });
 
         // สร้างลิงก์ pea code
-        groupedData[groupName][regionName].forEach(pea => {
+        subregions[subregionName].forEach(pea => {
           const peaLi = document.createElement('li');
           const peaA = document.createElement('a');
           peaA.href = `data_renew.html?pea_code_id=${pea.pea_code_id}`;
@@ -150,17 +174,23 @@
           peaCodeUl.appendChild(peaLi);
         });
 
-        regionLi.appendChild(regionBtn);
-        regionLi.appendChild(peaCodeUl);
-        regionUl.appendChild(regionLi);
+        subregionLi.appendChild(subregionBtn);
+        subregionLi.appendChild(peaCodeUl);
+        subregionUl.appendChild(subregionLi);
       }
 
-      groupDiv.appendChild(groupBtn);
-      groupDiv.appendChild(regionUl);
-      container.appendChild(groupDiv);
+      regionLi.appendChild(regionBtn);
+      regionLi.appendChild(subregionUl);
+      regionUl.appendChild(regionLi);
     }
-  })
-  .catch(e => console.error(e));
+
+    groupDiv.appendChild(groupBtn);
+    groupDiv.appendChild(regionUl);
+    container.appendChild(groupDiv);
+  }
+})
+.catch(e => console.error(e));
+
 
   const sidebar = document.getElementById('sidebar');
   const backdrop = document.getElementById('backdrop');
