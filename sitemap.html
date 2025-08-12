@@ -112,6 +112,7 @@
             const marker = L.marker([tool.latitude, tool.longitude]).addTo(map);
 
               marker.on('mouseover', function (e) {
+                  clearTimeout(tooltipTimeout);
                   if (openTooltip && openTooltip !== this) {
                       openTooltip.closeTooltip();
                   }
@@ -120,7 +121,11 @@
               });
 
               marker.on('mouseout', function (e) {
-                  // Do nothing on mouseout to keep the tooltip open
+                  const marker = this;
+                  tooltipTimeout = setTimeout(() => {
+                      marker.closeTooltip();
+                      if (openTooltip === marker) openTooltip = null;
+                  }, 500);
               });
               
             marker.addTo(map);
