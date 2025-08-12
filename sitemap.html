@@ -33,102 +33,157 @@
         if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + response.statusText);
         const tools = await response.json();
 
-        tools.forEach(tool => {
-          if (tool.latitude && tool.longitude) {
-            // กล่องข้อมูลแบบ card
+        tools.forEach(location => {
+          if (location.latitude && location.longitude && location.devices) {
             const card = document.createElement('div');
-            card.style.minWidth = '220px';
+            card.style.minWidth = '250px';
+            card.style.maxWidth = '350px';
             card.style.background = '#fff';
             card.style.borderRadius = '14px';
             card.style.boxShadow = '0 2px 8px #e0e7ff';
             card.style.padding = '16px 14px 12px 14px';
             card.style.margin = '0';
             card.style.fontFamily = 'inherit';
+            card.style.maxHeight = '400px';
+            card.style.overflowY = 'auto';
 
-            // Site name
-            const site = document.createElement('div');
-            site.textContent = tool.pea_code_name ?? '-';
-            site.style.fontSize = '1.15rem';
-            site.style.fontWeight = 'bold';
-            site.style.color = '#3730a3';
-            site.style.marginBottom = '8px';
-            card.appendChild(site);
-
-            // Status
-            const statusRow = document.createElement('div');
-            statusRow.style.display = 'flex';
-            statusRow.style.alignItems = 'center';
-            statusRow.style.marginBottom = '8px';
-
-            const statusLabel = document.createElement('span');
-            statusLabel.textContent = 'สถานะ: ';
-            statusLabel.style.fontSize = '0.95rem';
-            statusLabel.style.color = '#64748b';
-            statusRow.appendChild(statusLabel);
-
-            const statusSpan = document.createElement('span');
-            statusSpan.textContent = tool.status ?? '-';
-            statusSpan.className = `status ${tool.statusClass}`;
-            statusSpan.style.fontSize = '1.05rem';
-            statusSpan.style.padding = '2px 14px';
-            statusSpan.style.borderRadius = '16px';
-            statusSpan.style.marginLeft = '6px';
-            statusSpan.style.fontWeight = 'bold';
-            statusSpan.style.background = '#f1f5f9';
-            statusRow.appendChild(statusSpan);
-
-            card.appendChild(statusRow);
-
-            // Last update
-            const lastUpdate = document.createElement('div');
-            lastUpdate.textContent = `อัปเดตล่าสุด: ${tool.last_signal_updated ?? '-'}`;
-            lastUpdate.style.fontSize = '0.95rem';
-            lastUpdate.style.color = '#334155';
-            lastUpdate.style.marginBottom = '12px';
-            card.appendChild(lastUpdate);
-
-            // ปุ่มดูข้อมูล
-            const link = document.createElement('a');
-            link.href = `ups_detail.html?ups_id=${tool.ups_id}`;
-            link.textContent = 'ดูข้อมูล';
-            link.className = 'popup-btn';
-            link.target = 'content-frame';
-            link.style.display = 'block';
-            link.style.width = '100%';
-            link.style.textAlign = 'center';
-            link.style.background = '#6366f1';
-            link.style.color = '#fff';
-            link.style.fontWeight = 'bold';
-            link.style.fontSize = '1rem';
-            link.style.padding = '8px 0';
-            link.style.borderRadius = '8px';
-            link.style.marginTop = '4px';
-            link.style.textDecoration = 'none';
-            link.style.transition = 'background 0.2s';
-            link.onmouseover = () => link.style.background = '#4338ca';
-            link.onmouseout = () => link.style.background = '#6366f1';
-            card.appendChild(link);
-
-            const marker = L.marker([tool.latitude, tool.longitude]).addTo(map);
-
-              marker.on('mouseover', function (e) {
-                  clearTimeout(tooltipTimeout);
-                  if (openTooltip && openTooltip !== this) {
-                      openTooltip.closeTooltip();
-                  }
-                  this.bindTooltip(card, { permanent: true, direction: 'auto', interactive: true }).openTooltip();
-                  openTooltip = this;
-              });
-
-              marker.on('mouseout', function (e) {
-                  const marker = this;
-                  tooltipTimeout = setTimeout(() => {
-                      marker.closeTooltip();
-                      if (openTooltip === marker) openTooltip = null;
-                  }, 500);
-              });
+            if (location.devices.length === 1) {
+              // เครื่องเดียว
+              const device = location.devices[0];
               
-            marker.addTo(map);
+              const site = document.createElement('div');
+              site.textContent = device.pea_code_name ?? '-';
+              site.style.fontSize = '1.15rem';
+              site.style.fontWeight = 'bold';
+              site.style.color = '#3730a3';
+              site.style.marginBottom = '8px';
+              card.appendChild(site);
+
+              const statusRow = document.createElement('div');
+              statusRow.style.display = 'flex';
+              statusRow.style.alignItems = 'center';
+              statusRow.style.marginBottom = '8px';
+
+              const statusLabel = document.createElement('span');
+              statusLabel.textContent = 'สถานะ: ';
+              statusLabel.style.fontSize = '0.95rem';
+              statusLabel.style.color = '#64748b';
+              statusRow.appendChild(statusLabel);
+
+              const statusSpan = document.createElement('span');
+              statusSpan.textContent = device.status ?? '-';
+              statusSpan.className = `status ${device.statusClass}`;
+              statusSpan.style.fontSize = '1.05rem';
+              statusSpan.style.padding = '2px 14px';
+              statusSpan.style.borderRadius = '16px';
+              statusSpan.style.marginLeft = '6px';
+              statusSpan.style.fontWeight = 'bold';
+              statusSpan.style.background = '#f1f5f9';
+              statusRow.appendChild(statusSpan);
+              card.appendChild(statusRow);
+
+              const lastUpdate = document.createElement('div');
+              lastUpdate.textContent = `อัปเดตล่าสุด: ${device.last_signal_updated ?? '-'}`;
+              lastUpdate.style.fontSize = '0.95rem';
+              lastUpdate.style.color = '#334155';
+              lastUpdate.style.marginBottom = '12px';
+              card.appendChild(lastUpdate);
+
+              const link = document.createElement('a');
+              link.href = `ups_detail.html?ups_id=${device.ups_id}`;
+              link.textContent = 'ดูข้อมูล';
+              link.className = 'popup-btn';
+              link.target = 'content-frame';
+              link.style.display = 'block';
+              link.style.width = '100%';
+              link.style.textAlign = 'center';
+              link.style.background = '#6366f1';
+              link.style.color = '#fff';
+              link.style.fontWeight = 'bold';
+              link.style.fontSize = '1rem';
+              link.style.padding = '8px 0';
+              link.style.borderRadius = '8px';
+              link.style.marginTop = '4px';
+              link.style.textDecoration = 'none';
+              link.style.transition = 'background 0.2s';
+              link.onmouseover = () => link.style.background = '#4338ca';
+              link.onmouseout = () => link.style.background = '#6366f1';
+              card.appendChild(link);
+            } else {
+              // หลายเครื่อง
+              const title = document.createElement('div');
+              title.textContent = `ตำแหน่งนี้มี ${location.devices.length} เครื่อง`;
+              title.style.fontSize = '1.15rem';
+              title.style.fontWeight = 'bold';
+              title.style.color = '#3730a3';
+              title.style.marginBottom = '12px';
+              title.style.textAlign = 'center';
+              card.appendChild(title);
+
+              location.devices.forEach((device, index) => {
+                const deviceDiv = document.createElement('div');
+                deviceDiv.style.border = '1px solid #e2e8f0';
+                deviceDiv.style.borderRadius = '8px';
+                deviceDiv.style.padding = '8px';
+                deviceDiv.style.marginBottom = '8px';
+                deviceDiv.style.background = '#f8fafc';
+
+                const deviceName = document.createElement('div');
+                deviceName.textContent = `${device.ups_id} - ${device.pea_code_name}`;
+                deviceName.style.fontSize = '0.95rem';
+                deviceName.style.fontWeight = 'bold';
+                deviceName.style.color = '#1e293b';
+                deviceName.style.marginBottom = '4px';
+                deviceDiv.appendChild(deviceName);
+
+                const deviceStatus = document.createElement('span');
+                deviceStatus.textContent = device.status ?? '-';
+                deviceStatus.className = `status ${device.statusClass}`;
+                deviceStatus.style.fontSize = '0.85rem';
+                deviceStatus.style.padding = '2px 8px';
+                deviceStatus.style.borderRadius = '12px';
+                deviceStatus.style.background = '#f1f5f9';
+                deviceDiv.appendChild(deviceStatus);
+
+                const deviceLink = document.createElement('a');
+                deviceLink.href = `ups_detail.html?ups_id=${device.ups_id}`;
+                deviceLink.textContent = 'ดูข้อมูล';
+                deviceLink.target = 'content-frame';
+                deviceLink.style.display = 'inline-block';
+                deviceLink.style.marginTop = '4px';
+                deviceLink.style.padding = '4px 8px';
+                deviceLink.style.background = '#6366f1';
+                deviceLink.style.color = '#fff';
+                deviceLink.style.fontSize = '0.8rem';
+                deviceLink.style.borderRadius = '4px';
+                deviceLink.style.textDecoration = 'none';
+                deviceLink.style.transition = 'background 0.2s';
+                deviceLink.onmouseover = () => deviceLink.style.background = '#4338ca';
+                deviceLink.onmouseout = () => deviceLink.style.background = '#6366f1';
+                deviceDiv.appendChild(deviceLink);
+
+                card.appendChild(deviceDiv);
+              });
+            }
+
+            const marker = L.marker([location.latitude, location.longitude]).addTo(map);
+
+            marker.on('mouseover', function (e) {
+                clearTimeout(tooltipTimeout);
+                if (openTooltip && openTooltip !== this) {
+                    openTooltip.closeTooltip();
+                }
+                this.bindTooltip(card, { permanent: true, direction: 'auto', interactive: true }).openTooltip();
+                openTooltip = this;
+            });
+
+            marker.on('mouseout', function (e) {
+                const marker = this;
+                tooltipTimeout = setTimeout(() => {
+                    marker.closeTooltip();
+                    if (openTooltip === marker) openTooltip = null;
+                }, 500);
+            });
           }
         });
       } catch (error) {

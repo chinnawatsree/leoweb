@@ -5,43 +5,59 @@ require_once 'db_config.php';
 
 $sql = "
 SELECT 
-    d.ups_id, 
-    d.status,
-    d.latitude, 
-    d.longitude,
-    d.last_signal_updated,   -- เพิ่มบรรทัดนี้
+    dev.ups_id, 
+    s.event_name as status,
+    dev.latitude, 
+    dev.longitude,
+    ud.last_signal_updated,
     p.pea_code_name
 FROM 
-    ups_devices d
+    ups_devices dev
 JOIN 
-    peacodes p ON d.pea_code_id = p.pea_code_id
+    peacodes p ON dev.pea_code_id = p.pea_code_id
+LEFT JOIN (
+    SELECT ud1.*
+    FROM ups_data ud1
+    JOIN (
+        SELECT ups_id, MAX(last_signal_updated) AS max_date
+        FROM ups_data
+        GROUP BY ups_id
+    ) ud2 ON ud1.ups_id = ud2.ups_id AND ud1.last_signal_updated = ud2.max_date
+) ud ON dev.ups_id = ud.ups_id
+LEFT JOIN 
+    status_events s ON ud.status_id = s.status_id
 WHERE 
-    d.latitude IS NOT NULL AND d.longitude IS NOT NULL
+    dev.latitude IS NOT NULL AND dev.longitude IS NOT NULL
 ";
 
 $result = $conn->query($sql);
 
-$data = [];
-while ($row = $result->fetch_assoc()) {
-    // แปลง status จากตัวเลขเป็นข้อความ
-    switch ($row['status']) {
-        case 0: $row['status'] = 'Comm Error'; $row['statusClass'] = 'Comm Error'; break;
-        case 1: $row['status'] = 'Minor'; $row['statusClass'] = 'Minor'; break;
-        case 2: $row['status'] = 'Major'; $row['statusClass'] = 'Major'; break;
-        case 3: $row['status'] = 'Normal'; $row['statusClass'] = 'Normal'; break;
-        default: $row['status'] = 'Unknown'; $row['statusClass'] = 'Unknown';
-    }
+$locationGroups = [];
 
-    $data[] = [
+while ($row = $result->fetch_assoc()) {
+    $status = $row['status'] ? ucfirst($row['status']) : 'Unknown';
+    $lat = (float)$row['latitude'];
+    $lng = (float)$row['longitude'];
+    $locationKey = $lat . ',' . $lng;
+    
+    if (!isset($locationGroups[$locationKey])) {
+        $locationGroups[$locationKey] = [
+            'latitude' => $lat,
+            'longitude' => $lng,
+            'devices' => []
+        ];
+    }
+    
+    $locationGroups[$locationKey]['devices'][] = [
         'ups_id' => $row['ups_id'],
         'pea_code_name' => $row['pea_code_name'],
-        'status' => $row['status'],
-        'statusClass' => $row['statusClass'],
-        'latitude' => (float)$row['latitude'],
-        'longitude' => (float)$row['longitude'],
+        'status' => $status,
+        'statusClass' => $status,
         'last_signal_updated' => $row['last_signal_updated'],
     ];
 }
+
+$data = array_values($locationGroups);
 
 echo json_encode($data, JSON_UNESCAPED_UNICODE);
 $conn->close();
