@@ -8,7 +8,7 @@
 </head>
 <body class="bg-gray-100 p-4">
   <div class="max-w-full mx-auto">
-    <h1 class="text-2xl font-bold mb-4">UPS Monitoring</h1>
+    <h1 class="text-2xl font-bold mb-4 text-center">UPS Monitoring</h1>
 
     <!-- ปุ่มเลือก Region -->
     <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-4">
@@ -64,6 +64,7 @@
       <table class="min-w-full bg-white shadow rounded border text-xs leading-relaxed">
         <thead class="bg-gray-200 text-xs font-semibold">
           <tr class="text-left">
+            <th class="py-1 px-2 border">Status</th>
             <th class="py-1 px-2 border">Region</th>
             <th class="py-1 px-2 border">Province</th>
             <th class="py-1 px-2 border">PEA</th>
@@ -75,7 +76,7 @@
             <th class="py-1 px-2 border">Battery T</th>
             <th class="py-1 px-2 border">Battery V</th>
             <th class="py-1 px-2 border">UPS</th>
-            <th class="py-1 px-2 border">Status</th>
+            
           </tr>
         </thead>
         <tbody id="ups-table">
@@ -107,33 +108,73 @@
     return;
   }
 
-  data.forEach(item => {
-      
-      const statusClass = item.status === 'Normal' ? 'text-green-600 font-semibold' :
-                          item.status === 'Minor' ? 'text-yellow-600 font-semibold' :
-                          item.status === 'Major' ? 'text-orange-600 font-semibold' :
-                          'text-red-600 font-semibold';
+   data.forEach(item => {
+    // กำหนดสีตาม event / status
+    const statusTextMap = {
+      '✅': 'Normal',
+      '⚠️': 'Minor',
+      '🔴': 'Major',
+      '❌': 'Comm Error',
+      '❓': 'Unknown'
+    };
 
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td class="border px-2 py-1">${item.region_name}</td>
-        <td class="border px-2 py-1">${item.subregion_name}</td>
-        <td class="border px-2 py-1">${item.pea_code_name}</td>
-        <td class="px-4 py-2 text-blue-600 underline">
-          <a href="ups_detail.html?ups_id=${encodeURIComponent(item.ups_id)}" target="content-frame">
-            ${item.ups_id}
-          </a>
-        </td>
-        <td class="border px-2 py-1">${item.last_signal_updated ?? '-'}</td>
-        <td class="border px-2 py-1">${item.last_event ?? '-'}</td>
-        <td class="border px-2 py-1">${item.input_voltage ?? '-'}</td>
-        <td class="border px-2 py-1">${item.output_voltage ?? '-'}</td>
-        <td class="border px-2 py-1">${item.battery_temp ?? '-'}</td>
-        <td class="border px-2 py-1">${item.battery_voltage ?? '-'}</td>
-        <td class="border px-2 py-1">${item.ups_temp ?? '-'}</td>
-        <td class="border px-2 py-1 ${statusClass}">${item.status}</td>
-      `;
-      table.appendChild(row);
+    const statusMeaning = statusTextMap[item.status] || 'Unknown';
+
+    const statusClass = statusMeaning === 'Normal' ? 'text-green-600 font-semibold' :
+                        statusMeaning === 'Minor' ? 'text-yellow-600 font-semibold' :
+                        statusMeaning === 'Major' ? 'text-orange-600 font-semibold' :
+                        statusMeaning === 'Comm Error' ? 'text-red-600 font-semibold' :
+                        'text-gray-600 font-semibold';
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="border px-2 py-1 ${statusClass}" title="${statusMeaning}">${item.status}</td>
+      <td class="border px-2 py-1">${item.region_name}</td>
+      <td class="border px-2 py-1">${item.subregion_name}</td>
+      <td class="border px-2 py-1">${item.pea_code_name}</td>
+      <td class="px-4 py-2 text-blue-600 underline">
+        <a href="ups_detail.html?ups_id=${encodeURIComponent(item.ups_id)}" target="content-frame">
+          ${item.ups_id}
+        </a>
+      </td>
+      <td class="border px-2 py-1">${item.last_signal_updated ?? '-'}</td>
+      <td class="border px-2 py-1">${item.event ?? '-'}</td>
+      <td class="border px-2 py-1">${item.input_voltage ?? '-'}</td>
+      <td class="border px-2 py-1">${item.output_voltage ?? '-'}</td>
+      <td class="border px-2 py-1">${item.batt_temp ?? '-'}</td>
+      <td class="border px-2 py-1">${item.battery_voltage ?? '-'}</td>
+      <td class="border px-2 py-1">${item.ups_temp ?? '-'}</td>
+    `;
+    table.appendChild(row);
+  });
+}
+
+// ส่วนของ applyFilters ไม่ต้องเปลี่ยน ยกเว้นให้กรอง status ด้วย statusMeaning จริง ๆ
+function applyFilters() {
+  const search = document.getElementById("searchInput").value.toLowerCase();
+  const subregion = document.getElementById("subregionFilter").value;
+  const statusFilter = document.getElementById("statusFilter").value;
+
+  const filtered = fullData.filter(item => {
+    const statusTextMap = {
+      '✅': 'Normal',
+      '⚠️': 'Minor',
+      '🔴': 'Major',
+      '❌': 'Comm Error',
+      '❓': 'Unknown'
+    };
+    const statusMeaning = statusTextMap[item.status] || 'Unknown';
+
+    const matchRegion = currentRegion === '' || item.region_name === currentRegion;
+    const matchSubregion = subregion === '' || item.subregion_name === subregion;
+    const matchStatus = statusFilter === '' || statusMeaning === statusFilter;
+
+    const matchSearch =
+      item.ups_id.toLowerCase().includes(search) ||
+      item.subregion_name.toLowerCase().includes(search) ||
+      item.pea_code_name.toLowerCase().includes(search);
+
+    return matchRegion && matchSubregion && matchStatus && matchSearch;
     });
   }
 
