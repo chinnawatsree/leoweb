@@ -10,9 +10,9 @@
       background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
     }
     .card {
-      @apply bg-white p-10 rounded-2xl transition-all duration-300;
+      @apply bg-white p-4 sm:p-6 lg:p-10 rounded-xl sm:rounded-2xl transition-all duration-300;
       border: 1px solid #f1f5f9;
-      min-height: 140px;
+      min-height: 120px;
       backdrop-filter: blur(10px);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.05);
     }
@@ -22,9 +22,9 @@
       border-color: #e2e8f0;
     }
     .header-card {
-      @apply bg-white p-12 rounded-3xl transition-all duration-300;
+      @apply bg-white p-4 sm:p-6 lg:p-12 rounded-2xl sm:rounded-3xl transition-all duration-300;
       border: 2px solid #e5e7eb;
-      min-height: 160px;
+      min-height: 120px;
       background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
     }
@@ -69,24 +69,24 @@
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-100 via-blue-50 to-white min-h-screen p-6">
+<body class="bg-gradient-to-br from-indigo-100 via-blue-50 to-white min-h-screen p-2 sm:p-4 lg:p-6">
   <div class="max-w-7xl mx-auto">
-    <header class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <header class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
       <div class="header-card flex flex-col items-center justify-center text-center">
         <span class="text-label mb-1">PEA site name</span>
-        <span id="site-name" class="text-3xl font-black text-indigo-700">-</span>
+        <span id="site-name" class="text-lg sm:text-2xl lg:text-3xl font-black text-indigo-700 break-words">-</span>
       </div>
       <div class="header-card flex flex-col items-center justify-center text-center">
         <span class="text-label mb-1">UPS ID</span>
-        <span id="ups-id" class="text-3xl font-black text-indigo-700">-</span>
+        <span id="ups-id" class="text-lg sm:text-2xl lg:text-3xl font-black text-indigo-700">-</span>
       </div>
       <div class="header-card flex flex-col items-center justify-center text-center">
         <span class="text-label mb-1">Last updated</span>
-        <span id="last-updated" class="text-lg font-black text-gray-700">-</span>
+        <span id="last-updated" class="text-sm sm:text-base lg:text-lg font-black text-gray-700 text-center">-</span>
       </div>
       <div class="header-card flex flex-col items-center justify-center text-center">
         <span class="text-label mb-1">Status</span>
-        <span id="status" class="text-title font-black px-4 py-1 rounded-full transition-colors duration-200">-</span>
+        <span id="status" class="text-base sm:text-lg lg:text-xl font-black px-3 py-1 rounded-full transition-colors duration-200">-</span>
       </div>
     </header>
 
@@ -99,8 +99,8 @@
           <span class="text-2xl text-yellow-400">⚡</span>
         </div>
       </div>
-      <div class="bg-white rounded-xl p-2">
-        <svg width="100%" viewBox="0 700 3600 1400">
+      <div class="bg-white rounded-xl p-2 overflow-x-auto">
+        <svg width="100%" viewBox="0 700 3600 1400" class="min-w-[800px] sm:min-w-0">
           <defs>
             <!-- Modern Tech Filters -->
             <filter id="techShadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -225,7 +225,7 @@
       </div>
     </section>
 
-    <main id="dashboard-content" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <main id="dashboard-content" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
       <!-- Grid line Card -->
       <div class="card flex flex-col items-center justify-center hover:ring-2 hover:ring-indigo-300 min-h-[180px]">
         <div class="flex items-center mb-2">
@@ -274,11 +274,11 @@
           </div>
         </div>
       </div>
-      <div class="card md:col-span-2 mt-2">
-        <h3 class="text-lg font-semibold mb-4 flex-center text-indigo-700">
+      <div class="card sm:col-span-2 mt-2">
+        <h3 class="text-base sm:text-lg font-semibold mb-4 flex-center text-indigo-700">
           <span class="mr-2">🔋</span>Battery Health
         </h3>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
           <div class="bg-gradient-to-br from-indigo-50 to-white p-4 rounded shadow">
             <p class="text-label">Avg. Voltage</p>
             <p id="avg-voltage" class="text-xl font-bold text-indigo-700">-</p>
@@ -308,7 +308,7 @@
           <h4 class="text-label mb-2 text-indigo-600">Battery Cell Voltage</h4>
           <canvas id="battery-chart"></canvas>
           <!-- กล่องแสดงค่า C1-C6 -->
-          <div class="grid grid-cols-2 md:grid-cols-6 gap-2 mt-4">
+          <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-4">
             <div class="flex flex-col items-center bg-indigo-50 rounded-lg p-2">
               <span class="text-xs text-gray-500">C1</span>
               <span id="cell-c1" class="font-bold text-lg text-indigo-700">-</span>
