@@ -59,6 +59,16 @@
     </div>
   </div>
 
+    <!-- คำอธิบายสัญลักษณ์ Status -->
+    <div class="bg-gray-50 rounded p-2 mb-3 border-l-4 border-blue-400">
+      <div class="flex flex-wrap gap-4 text-xs text-gray-600">
+        <span class="flex items-center gap-1"><span class="text-green-600 font-bold text-lg">●</span> Normal - ระบบทำงานปกติ</span>
+        <span class="flex items-center gap-1"><span class="text-yellow-600 font-bold text-lg">▲</span> Minor - มีปัญหาเล็กน้อย</span>
+        <span class="flex items-center gap-1"><span class="text-orange-600 font-bold text-lg">■</span> Major - มีปัญหาร้ายแรง</span>
+        <span class="flex items-center gap-1"><span class="text-red-600 font-bold text-lg">❌</span> Comm Error - ขาดการติดต่อ</span>
+      </div>
+    </div>
+
     <!-- ตารางข้อมูล -->
     <div class="overflow-x-auto rounded-lg shadow">
       <table class="min-w-full bg-white border text-xs sm:text-sm leading-relaxed">
@@ -112,24 +122,30 @@
     // กำหนดสีตาม event / status
     const statusTextMap = {
       '✅': 'Normal',
-      '⚠️': 'Minor',
+      '⚠️': 'Minor', 
       '🔴': 'Major',
       '❌': 'Comm Error',
       '❓': 'Unknown'
     };
 
     const statusMeaning = statusTextMap[item.status] || 'Unknown';
+    
+    // แปลงเป็นสัญลักษณ์ที่ชัดเจนกว่า
+    const statusSymbol = statusMeaning === 'Normal' ? '●' :
+                         statusMeaning === 'Minor' ? '▲' :
+                         statusMeaning === 'Major' ? '■' :
+                         statusMeaning === 'Comm Error' ? '❌' : '?';
 
-    const statusClass = statusMeaning === 'Normal' ? 'text-green-600 font-semibold' :
-                        statusMeaning === 'Minor' ? 'text-yellow-600 font-semibold' :
-                        statusMeaning === 'Major' ? 'text-orange-600 font-semibold' :
-                        statusMeaning === 'Comm Error' ? 'text-red-600 font-semibold' :
-                        'text-gray-600 font-semibold';
+    const statusClass = statusMeaning === 'Normal' ? 'text-green-600 font-bold text-lg' :
+                        statusMeaning === 'Minor' ? 'text-yellow-600 font-bold text-lg' :
+                        statusMeaning === 'Major' ? 'text-orange-600 font-bold text-lg' :
+                        statusMeaning === 'Comm Error' ? 'text-red-600 font-bold text-lg' :
+                        'text-gray-600 font-bold text-lg';
 
     const row = document.createElement("tr");
     row.className = "hover:bg-gray-50";
     row.innerHTML = `
-      <td class="border px-1 sm:px-2 py-1 sm:py-2 ${statusClass}" title="${statusMeaning}">${item.status}</td>
+      <td class="border px-1 sm:px-2 py-1 sm:py-2 text-center ${statusMeaning === 'Comm Error' ? 'font-bold text-lg' : statusClass}" title="${statusMeaning}" ${statusMeaning === 'Comm Error' ? 'style="color: #ff0000 !important;"' : ''}>${statusSymbol}</td>
       <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm">${item.region_name}</td>
       <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm">${item.subregion_name}</td>
       <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm">${item.pea_code_name}</td>
@@ -150,7 +166,7 @@
   });
 }
 
-// ส่วนของ applyFilters ไม่ต้องเปลี่ยน ยกเว้นให้กรอง status ด้วย statusMeaning จริง ๆ
+// ฟังก์ชันกรองข้อมูลจาก filter และ search
 function applyFilters() {
   const search = document.getElementById("searchInput").value.toLowerCase();
   const subregion = document.getElementById("subregionFilter").value;
@@ -160,7 +176,7 @@ function applyFilters() {
     const statusTextMap = {
       '✅': 'Normal',
       '⚠️': 'Minor',
-      '🔴': 'Major',
+      '🔴': 'Major', 
       '❌': 'Comm Error',
       '❓': 'Unknown'
     };
@@ -173,34 +189,15 @@ function applyFilters() {
     const matchSearch =
       item.ups_id.toLowerCase().includes(search) ||
       item.subregion_name.toLowerCase().includes(search) ||
-      item.pea_code_name.toLowerCase().includes(search);
-
-    return matchRegion && matchSubregion && matchStatus && matchSearch;
-    });
-  }
-
-  // ฟังก์ชันกรองข้อมูลจาก filter และ search
-  function applyFilters() {
-  const search = document.getElementById("searchInput").value.toLowerCase();
-  const subregion = document.getElementById("subregionFilter").value;
-  const statusFilter = document.getElementById("statusFilter").value;
-
-  const filtered = fullData.filter(item => {
-    const matchRegion = currentRegion === '' || item.region_name === currentRegion;
-    const matchSubregion = subregion === '' || item.subregion_name === subregion;
-    const matchStatus = statusFilter === '' || item.status === statusFilter;
-
-    const matchSearch =
-      item.ups_id.toLowerCase().includes(search) ||
-      item.subregion_name.toLowerCase().includes(search) ||
-      item.pea_code_name.toLowerCase().includes(search);
+      item.pea_code_name.toLowerCase().includes(search) ||
+      item.region_name.toLowerCase().includes(search);
 
     return matchRegion && matchSubregion && matchStatus && matchSearch;
   });
 
   renderTable(filtered);
 
-  // 👇 เพิ่มส่วนนี้เพื่อนับข้อมูลที่แสดง
+  // อัปเดตจำนวนข้อมูลที่แสดง
   const countDisplay = document.getElementById("dataCount");
   if (countDisplay) {
     countDisplay.textContent = `แสดงทั้งหมด ${filtered.length} รายการ`;
