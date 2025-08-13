@@ -6,6 +6,7 @@
   <title>UPS Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     #map { height: 86vh; width: 100%; }
     .status.Normal { color: #22c55e; font-weight: bold; }
     .status.Minor { color: #f59e42; font-weight: bold; }
@@ -17,19 +18,34 @@
     .search-bar { width: 100%; max-width: 300px; padding: 8px 12px; margin-bottom: 15px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16px; }
     .province-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
     .province-card { background: #fff; border: 1px solid #d1d5db; border-radius: 8px; padding: 12px 16px; cursor: pointer; transition: all 0.2s; min-width: 120px; text-align: center; }
-    .province-card:hover { border-color: #6366f1; box-shadow: 0 3px 8px rgba(99, 102, 241, 0.15); transform: translateY(-1px); }
+    .province-card:hover, .province-card:focus { border-color: #6366f1; box-shadow: 0 3px 8px rgba(99, 102, 241, 0.15); transform: translateY(-1px); outline: none; }
+    .province-card:focus { outline: 2px solid #6366f1; outline-offset: 2px; }
     .province-card.active { border-color: #6366f1; background: #eef2ff; }
     .province-name { font-weight: 600; color: #374151; margin-bottom: 4px; font-size: 16px; }
     .province-count { color: #6366f1; font-size: 14px; font-weight: 500; }
     .hidden { display: none !important; }
+    .show-all-btn { background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; }
+    .show-all-btn:hover, .show-all-btn:focus { background: #059669; transform: translateY(-1px); outline: 2px solid #10b981; outline-offset: 2px; }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body style="margin:0; padding:0;">
-  <div id="map"></div>
+  <div id="map" role="application" aria-label="แผนที่แสดงตำแหน่ง UPS"></div>
   
-  <div class="province-section">
-    <input type="text" id="searchInput" class="search-bar" placeholder="ค้นหาจังหวัด...">
-    <div id="provinceGrid" class="province-grid"></div>
+  <div class="province-section" role="region" aria-label="ตัวกรองจังหวัด">
+    <label for="searchInput" class="sr-only">ค้นหาจังหวัด</label>
+    <input type="text" id="searchInput" class="search-bar" placeholder="ค้นหาจังหวัด..." aria-describedby="search-help">
+    <div id="search-help" class="sr-only">พิมพ์ชื่อจังหวัดเพื่อค้นหา ใช้ลูกศรเพื่อนำทาง</div>
+    <button id="showAllBtn" class="show-all-btn hidden" onclick="showAllProvinces()" aria-label="แสดงจังหวัดทั้งหมด">🌍 แสดงทั้งหมด</button>
+  <!-- Loading Screen -->
+  <div id="loadingScreen" class="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 hidden">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid mx-auto mb-4"></div>
+      <p class="text-gray-700 text-lg">กำลังโหลดข้อมูล...</p>
+    </div>
+  </div>
+    <div id="provinceGrid" class="province-grid" role="grid" aria-label="รายการจังหวัด"></div>
   </div>
   
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -228,11 +244,103 @@
       });
     }
 
+    let allTools = [];
+    let provinceCache = null;
+    let searchTimeout = null;
+    let currentFocusIndex = -1;
+    
+    // Debounce function
+    function debounce(func, wait) {
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(searchTimeout);
+          func(...args);
+        };
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(later, wait);
+      };
+    }
+    
+    // Keyboard navigation
+    function handleKeyboardNavigation(e) {
+      const cards = Array.from(document.querySelectorAll('.province-card:not(.hidden)'));
+      if (cards.length === 0) return;
+      
+      switch(e.key) {
+        case 'ArrowRight':
+        case 'ArrowDown':
+          e.preventDefault();
+          currentFocusIndex = (currentFocusIndex + 1) % cards.length;
+          cards[currentFocusIndex].focus();
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          e.preventDefault();
+          currentFocusIndex = currentFocusIndex <= 0 ? cards.length - 1 : currentFocusIndex - 1;
+          cards[currentFocusIndex].focus();
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          if (currentFocusIndex >= 0 && cards[currentFocusIndex]) {
+            cards[currentFocusIndex].click();
+          }
+          break;
+        case 'Escape':
+          document.getElementById('searchInput').focus();
+          currentFocusIndex = -1;
+          break;
+      }
+    }
+    
+    function showAllProvinces() {
+      // ลบ active class จากการ์ดทั้งหมด
+      document.querySelectorAll('.province-card').forEach(c => c.classList.remove('active'));
+      
+      // ลบ marker ทั้งหมด
+      map.eachLayer(layer => {
+        if (layer instanceof L.Marker) {
+          map.removeLayer(layer);
+        }
+      });
+      
+      // แสดง marker ทั้งหมด
+      allTools.forEach(location => {
+        if (location.latitude && location.longitude && location.devices) {
+          const card = createTooltipCard(location);
+          const markerColor = getMarkerColor(location.devices);
+          
+          const customIcon = L.divIcon({
+            className: 'custom-marker',
+            html: `<svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 19.4 12.5 41 12.5 41S25 19.4 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="#333" stroke="#fff" stroke-width="2"/>
+              <circle cx="12.5" cy="12.5" r="8" fill="${markerColor}"/>
+            </svg>`,
+            iconSize: [25, 41],
+            iconAnchor: [12, 41]
+          });
+          
+          const marker = L.marker([location.latitude, location.longitude], { icon: customIcon }).addTo(map);
+          addMarkerEvents(marker, card);
+        }
+      });
+      
+      // ซ่อนปุ่ม
+      document.getElementById('showAllBtn').classList.add('hidden');
+      
+      // รีเซ็ตมุมมองแผนที่
+      map.setView([13.736717, 100.523186], 6);
+    }
+
     async function loadMapData() {
       try {
+        document.getElementById('loadingScreen').classList.remove('hidden');
+        document.getElementById('provinceGrid').style.display = 'none';
+        
         const response = await fetch('map_data.php');
         if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + response.statusText);
         const tools = await response.json();
+        allTools = tools;
 
         tools.forEach(location => {
           if (location.latitude && location.longitude && location.devices) {
@@ -256,8 +364,12 @@
         
         createProvinceCards(tools);
         
+        document.getElementById('loadingScreen').classList.add('hidden');
+        document.getElementById('provinceGrid').style.display = 'flex';
+        
       } catch (error) {
         console.error('Error loading map data:', error);
+        document.getElementById('loadingScreen').classList.add('hidden');
         alert('ไม่สามารถโหลดข้อมูลแผนที่ได้: ' + error.message);
       }
     }
@@ -349,6 +461,12 @@
     }
 
     function createProvinceCards(tools) {
+      // Use cached data if available
+      if (provinceCache) {
+        renderProvinceCards(provinceCache);
+        return;
+      }
+      
       const provinceData = {};
       
       tools.forEach(location => {
@@ -363,6 +481,12 @@
         }
       });
       
+      // Cache the province data
+      provinceCache = provinceData;
+      renderProvinceCards(provinceData);
+    }
+    
+    function renderProvinceCards(provinceData) {
       const provinceGrid = document.getElementById('provinceGrid');
       const searchInput = document.getElementById('searchInput');
       
@@ -378,28 +502,73 @@
             <div class="province-count">${count} จุด</div>
           `;
           
-          card.addEventListener('click', () => {
-            document.querySelectorAll('.province-card').forEach(c => c.classList.remove('active'));
+          // Add accessibility attributes
+          card.setAttribute('tabindex', '0');
+          card.setAttribute('role', 'gridcell');
+          card.setAttribute('aria-label', `จังหวัด${province} มี ${count} จุด`);
+          
+          const clickHandler = () => {
+            document.querySelectorAll('.province-card').forEach(c => {
+              c.classList.remove('active');
+              c.setAttribute('aria-selected', 'false');
+            });
             card.classList.add('active');
-            filterMarkersByProvince(province, tools);
+            card.setAttribute('aria-selected', 'true');
+            document.getElementById('showAllBtn').classList.remove('hidden');
+            filterMarkersByProvince(province, allTools);
+          };
+          
+          card.addEventListener('click', clickHandler);
+          card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              clickHandler();
+            }
           });
           
           provinceGrid.appendChild(card);
         });
       
-      searchInput.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
+      // Debounced search function
+      const debouncedSearch = debounce((searchTerm) => {
         const cards = document.querySelectorAll('.province-card');
+        let visibleCount = 0;
         
         cards.forEach(card => {
           const provinceName = card.dataset.province.toLowerCase();
           if (provinceName.includes(searchTerm)) {
             card.classList.remove('hidden');
+            visibleCount++;
           } else {
             card.classList.add('hidden');
           }
         });
+        
+        // Update aria-live region for screen readers
+        const searchHelp = document.getElementById('search-help');
+        searchHelp.textContent = `พบ ${visibleCount} จังหวัด`;
+        currentFocusIndex = -1;
+      }, 300);
+      
+      searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        debouncedSearch(searchTerm);
       });
+      
+      // Add keyboard navigation to search input
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const firstCard = document.querySelector('.province-card:not(.hidden)');
+          if (firstCard) {
+            currentFocusIndex = 0;
+            firstCard.focus();
+          }
+        }
+      });
+      
+      // Add global keyboard navigation
+      document.addEventListener('keydown', handleKeyboardNavigation);
     }
 
     function filterMarkersByProvince(selectedProvince, tools) {
