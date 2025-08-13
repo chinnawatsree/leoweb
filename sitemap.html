@@ -6,16 +6,48 @@
   <title>UPS Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
-    #map { height: 90vh; width: 100%; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    #map { height: 86vh; width: 100%; }
     .status.Normal { color: #22c55e; font-weight: bold; }
     .status.Minor { color: #f59e42; font-weight: bold; }
     .status.Major { color: #ef4444; font-weight: bold; }
-    .status.Comm\ Error { color: #6b7280; font-weight: bold; }
+    .status.Comm\ Error { color: #ff0000; font-weight: bold; }
     .popup-btn { color: #2563eb; text-decoration: underline; margin-top: 4px; display: inline-block; }
+    
+    .province-section { padding: 20px 15px; background: #f1f5f9; display: flex; flex-direction: column; align-items: center; }
+    .search-bar { width: 100%; max-width: 300px; padding: 8px 12px; margin-bottom: 15px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16px; }
+    .province-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .province-card { background: #fff; border: 1px solid #d1d5db; border-radius: 8px; padding: 12px 16px; cursor: pointer; transition: all 0.2s; min-width: 120px; text-align: center; }
+    .province-card:hover, .province-card:focus { border-color: #6366f1; box-shadow: 0 3px 8px rgba(99, 102, 241, 0.15); transform: translateY(-1px); outline: none; }
+    .province-card:focus { outline: 2px solid #6366f1; outline-offset: 2px; }
+    .province-card.active { border-color: #6366f1; background: #eef2ff; }
+    .province-name { font-weight: 600; color: #374151; margin-bottom: 4px; font-size: 16px; }
+    .province-count { color: #6366f1; font-size: 14px; font-weight: 500; }
+    .hidden { display: none !important; }
+    .show-all-btn { background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 15px; }
+    .show-all-btn:hover, .show-all-btn:focus { background: #059669; transform: translateY(-1px); outline: 2px solid #10b981; outline-offset: 2px; }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body style="margin:0; padding:0;">
-  <div id="map"></div>
+  <div id="map" role="application" aria-label="แผนที่แสดงตำแหน่ง UPS"></div>
+  
+  <div class="province-section" role="region" aria-label="ตัวกรองจังหวัด">
+    <label for="searchInput" class="sr-only">ค้นหาจังหวัด</label>
+    <input type="text" id="searchInput" class="search-bar" placeholder="ค้นหาจังหวัด..." aria-describedby="search-help">
+    <div id="search-help" class="sr-only">พิมพ์ชื่อจังหวัดเพื่อค้นหา ใช้ลูกศรเพื่อนำทาง</div>
+    <button id="showAllBtn" class="show-all-btn hidden" onclick="showAllProvinces()" aria-label="แสดงจังหวัดทั้งหมด">🌍 แสดงทั้งหมด</button>
+  <!-- Loading Screen -->
+  <div id="loadingScreen" class="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 hidden">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid mx-auto mb-4"></div>
+      <p class="text-gray-700 text-lg">กำลังโหลดข้อมูล...</p>
+    </div>
+  </div>
+    <div id="provinceGrid" class="province-grid" role="grid" aria-label="รายการจังหวัด"></div>
+  </div>
+  
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
     const map = L.map('map').setView([13.736717, 100.523186], 6);
@@ -23,177 +55,569 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
-      let openTooltip = null;
-      let tooltipTimeout;
+    
+    let openTooltip = null;
+    let tooltipTimeout;
       
-    // ดึงข้อมูลและปักหมุด
+    function getMarkerColor(devices) {
+      for (const device of devices) {
+        if (device.status === 'Major' || device.status === 'Comm Error') {
+          return 'red';
+        }
+      }
+      return 'blue';
+    }
+
+    function createTooltipCard(location) {
+      const card = document.createElement('div');
+      card.style.minWidth = '250px';
+      card.style.maxWidth = '350px';
+      card.style.background = '#fff';
+      card.style.borderRadius = '14px';
+      card.style.boxShadow = '0 2px 8px #e0e7ff';
+      card.style.padding = '16px 14px 12px 14px';
+      card.style.margin = '0';
+      card.style.fontFamily = 'inherit';
+      card.style.maxHeight = '400px';
+      card.style.overflowY = 'auto';
+
+      if (location.devices.length === 1) {
+        const device = location.devices[0];
+        
+        const site = document.createElement('div');
+        site.textContent = device.pea_code_name ?? '-';
+        site.style.fontSize = '1.15rem';
+        site.style.fontWeight = 'bold';
+        site.style.color = '#3730a3';
+        site.style.marginBottom = '8px';
+        card.appendChild(site);
+
+        const statusRow = document.createElement('div');
+        statusRow.style.display = 'flex';
+        statusRow.style.alignItems = 'center';
+        statusRow.style.marginBottom = '8px';
+
+        const statusLabel = document.createElement('span');
+        statusLabel.textContent = 'สถานะ: ';
+        statusLabel.style.fontSize = '0.95rem';
+        statusLabel.style.color = '#64748b';
+        statusRow.appendChild(statusLabel);
+
+        const statusSpan = document.createElement('span');
+        statusSpan.textContent = device.status ?? '-';
+        statusSpan.className = `status ${device.statusClass}`;
+        statusSpan.style.fontSize = '1.05rem';
+        statusSpan.style.padding = '2px 14px';
+        statusSpan.style.borderRadius = '16px';
+        statusSpan.style.marginLeft = '6px';
+        statusSpan.style.fontWeight = 'bold';
+        statusSpan.style.background = '#f1f5f9';
+        statusRow.appendChild(statusSpan);
+        card.appendChild(statusRow);
+
+        const lastUpdate = document.createElement('div');
+        lastUpdate.textContent = `อัปเดตล่าสุด: ${device.last_signal_updated ?? '-'}`;
+        lastUpdate.style.fontSize = '0.95rem';
+        lastUpdate.style.color = '#334155';
+        lastUpdate.style.marginBottom = '12px';
+        card.appendChild(lastUpdate);
+
+        const link = document.createElement('a');
+        link.href = `ups_detail.html?ups_id=${device.ups_id}`;
+        link.textContent = 'ดูข้อมูล';
+        link.className = 'popup-btn';
+        link.target = 'content-frame';
+        link.style.display = 'block';
+        link.style.width = '100%';
+        link.style.textAlign = 'center';
+        link.style.background = '#6366f1';
+        link.style.color = '#fff';
+        link.style.fontWeight = 'bold';
+        link.style.fontSize = '1rem';
+        link.style.padding = '8px 0';
+        link.style.borderRadius = '8px';
+        link.style.marginTop = '4px';
+        link.style.textDecoration = 'none';
+        link.style.transition = 'background 0.2s';
+        link.onmouseover = () => link.style.background = '#4338ca';
+        link.onmouseout = () => link.style.background = '#6366f1';
+        card.appendChild(link);
+      } else {
+        const title = document.createElement('div');
+        title.textContent = `ตำแหน่งนี้มี ${location.devices.length} เครื่อง`;
+        title.style.fontSize = '1.15rem';
+        title.style.fontWeight = 'bold';
+        title.style.color = '#3730a3';
+        title.style.marginBottom = '12px';
+        title.style.textAlign = 'center';
+        card.appendChild(title);
+
+        location.devices.forEach((device, index) => {
+          const deviceDiv = document.createElement('div');
+          deviceDiv.style.border = '1px solid #e2e8f0';
+          deviceDiv.style.borderRadius = '8px';
+          deviceDiv.style.padding = '8px';
+          deviceDiv.style.marginBottom = '8px';
+          deviceDiv.style.background = '#f8fafc';
+
+          const deviceName = document.createElement('div');
+          deviceName.textContent = `${device.ups_id} - ${device.pea_code_name}`;
+          deviceName.style.fontSize = '0.95rem';
+          deviceName.style.fontWeight = 'bold';
+          deviceName.style.color = '#1e293b';
+          deviceName.style.marginBottom = '4px';
+          deviceDiv.appendChild(deviceName);
+
+          const deviceStatus = document.createElement('span');
+          deviceStatus.textContent = device.status ?? '-';
+          deviceStatus.className = `status ${device.statusClass}`;
+          deviceStatus.style.fontSize = '0.85rem';
+          deviceStatus.style.padding = '2px 8px';
+          deviceStatus.style.borderRadius = '12px';
+          deviceStatus.style.background = '#f1f5f9';
+          deviceDiv.appendChild(deviceStatus);
+
+          const deviceLink = document.createElement('a');
+          deviceLink.href = `ups_detail.html?ups_id=${device.ups_id}`;
+          deviceLink.textContent = 'ดูข้อมูล';
+          deviceLink.target = 'content-frame';
+          deviceLink.style.display = 'inline-block';
+          deviceLink.style.marginTop = '4px';
+          deviceLink.style.padding = '4px 8px';
+          deviceLink.style.background = '#6366f1';
+          deviceLink.style.color = '#fff';
+          deviceLink.style.fontSize = '0.8rem';
+          deviceLink.style.borderRadius = '4px';
+          deviceLink.style.textDecoration = 'none';
+          deviceLink.style.transition = 'background 0.2s';
+          deviceLink.onmouseover = () => deviceLink.style.background = '#4338ca';
+          deviceLink.onmouseout = () => deviceLink.style.background = '#6366f1';
+          deviceDiv.appendChild(deviceLink);
+
+          card.appendChild(deviceDiv);
+        });
+      }
+      return card;
+    }
+
+    function addMarkerEvents(marker, card) {
+      marker.on('mouseover', function (e) {
+        clearTimeout(tooltipTimeout);
+        if (openTooltip) {
+          map.closePopup(openTooltip);
+        }
+        
+        const popup = L.popup({
+          closeButton: false,
+          autoClose: false,
+          closeOnClick: false,
+          className: 'custom-tooltip'
+        })
+        .setLatLng(e.latlng)
+        .setContent(card)
+        .openOn(map);
+        
+        openTooltip = popup;
+        
+        // เพิ่ม event listeners สำหรับ popup
+        card.addEventListener('mouseenter', () => {
+          clearTimeout(tooltipTimeout);
+        });
+        
+        card.addEventListener('mouseleave', () => {
+          tooltipTimeout = setTimeout(() => {
+            if (openTooltip) {
+              map.closePopup(openTooltip);
+              openTooltip = null;
+            }
+          }, 1000);
+        });
+      });
+
+      marker.on('mouseout', function (e) {
+        tooltipTimeout = setTimeout(() => {
+          if (openTooltip) {
+            map.closePopup(openTooltip);
+            openTooltip = null;
+          }
+        }, 1000);
+      });
+    }
+
+    let allTools = [];
+    let provinceCache = null;
+    let searchTimeout = null;
+    let currentFocusIndex = -1;
+    
+    // Debounce function
+    function debounce(func, wait) {
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(searchTimeout);
+          func(...args);
+        };
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(later, wait);
+      };
+    }
+    
+    // Keyboard navigation
+    function handleKeyboardNavigation(e) {
+      const cards = Array.from(document.querySelectorAll('.province-card:not(.hidden)'));
+      if (cards.length === 0) return;
+      
+      switch(e.key) {
+        case 'ArrowRight':
+        case 'ArrowDown':
+          e.preventDefault();
+          currentFocusIndex = (currentFocusIndex + 1) % cards.length;
+          cards[currentFocusIndex].focus();
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          e.preventDefault();
+          currentFocusIndex = currentFocusIndex <= 0 ? cards.length - 1 : currentFocusIndex - 1;
+          cards[currentFocusIndex].focus();
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          if (currentFocusIndex >= 0 && cards[currentFocusIndex]) {
+            cards[currentFocusIndex].click();
+          }
+          break;
+        case 'Escape':
+          document.getElementById('searchInput').focus();
+          currentFocusIndex = -1;
+          break;
+      }
+    }
+    
+    function showAllProvinces() {
+      // ลบ active class จากการ์ดทั้งหมด
+      document.querySelectorAll('.province-card').forEach(c => c.classList.remove('active'));
+      
+      // ลบ marker ทั้งหมด
+      map.eachLayer(layer => {
+        if (layer instanceof L.Marker) {
+          map.removeLayer(layer);
+        }
+      });
+      
+      // แสดง marker ทั้งหมด
+      allTools.forEach(location => {
+        if (location.latitude && location.longitude && location.devices) {
+          const card = createTooltipCard(location);
+          const markerColor = getMarkerColor(location.devices);
+          
+          const customIcon = L.divIcon({
+            className: 'custom-marker',
+            html: `<svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 19.4 12.5 41 12.5 41S25 19.4 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="#333" stroke="#fff" stroke-width="2"/>
+              <circle cx="12.5" cy="12.5" r="8" fill="${markerColor}"/>
+            </svg>`,
+            iconSize: [25, 41],
+            iconAnchor: [12, 41]
+          });
+          
+          const marker = L.marker([location.latitude, location.longitude], { icon: customIcon }).addTo(map);
+          addMarkerEvents(marker, card);
+        }
+      });
+      
+      // ซ่อนปุ่ม
+      document.getElementById('showAllBtn').classList.add('hidden');
+      
+      // รีเซ็ตมุมมองแผนที่
+      map.setView([13.736717, 100.523186], 6);
+    }
+
     async function loadMapData() {
       try {
+        document.getElementById('loadingScreen').classList.remove('hidden');
+        document.getElementById('provinceGrid').style.display = 'none';
+        
         const response = await fetch('map_data.php');
         if (!response.ok) throw new Error('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + response.statusText);
         const tools = await response.json();
+        allTools = tools;
 
         tools.forEach(location => {
           if (location.latitude && location.longitude && location.devices) {
-            const card = document.createElement('div');
-            card.style.minWidth = '250px';
-            card.style.maxWidth = '350px';
-            card.style.background = '#fff';
-            card.style.borderRadius = '14px';
-            card.style.boxShadow = '0 2px 8px #e0e7ff';
-            card.style.padding = '16px 14px 12px 14px';
-            card.style.margin = '0';
-            card.style.fontFamily = 'inherit';
-            card.style.maxHeight = '400px';
-            card.style.overflowY = 'auto';
-
-            if (location.devices.length === 1) {
-              // เครื่องเดียว
-              const device = location.devices[0];
-              
-              const site = document.createElement('div');
-              site.textContent = device.pea_code_name ?? '-';
-              site.style.fontSize = '1.15rem';
-              site.style.fontWeight = 'bold';
-              site.style.color = '#3730a3';
-              site.style.marginBottom = '8px';
-              card.appendChild(site);
-
-              const statusRow = document.createElement('div');
-              statusRow.style.display = 'flex';
-              statusRow.style.alignItems = 'center';
-              statusRow.style.marginBottom = '8px';
-
-              const statusLabel = document.createElement('span');
-              statusLabel.textContent = 'สถานะ: ';
-              statusLabel.style.fontSize = '0.95rem';
-              statusLabel.style.color = '#64748b';
-              statusRow.appendChild(statusLabel);
-
-              const statusSpan = document.createElement('span');
-              statusSpan.textContent = device.status ?? '-';
-              statusSpan.className = `status ${device.statusClass}`;
-              statusSpan.style.fontSize = '1.05rem';
-              statusSpan.style.padding = '2px 14px';
-              statusSpan.style.borderRadius = '16px';
-              statusSpan.style.marginLeft = '6px';
-              statusSpan.style.fontWeight = 'bold';
-              statusSpan.style.background = '#f1f5f9';
-              statusRow.appendChild(statusSpan);
-              card.appendChild(statusRow);
-
-              const lastUpdate = document.createElement('div');
-              lastUpdate.textContent = `อัปเดตล่าสุด: ${device.last_signal_updated ?? '-'}`;
-              lastUpdate.style.fontSize = '0.95rem';
-              lastUpdate.style.color = '#334155';
-              lastUpdate.style.marginBottom = '12px';
-              card.appendChild(lastUpdate);
-
-              const link = document.createElement('a');
-              link.href = `ups_detail.html?ups_id=${device.ups_id}`;
-              link.textContent = 'ดูข้อมูล';
-              link.className = 'popup-btn';
-              link.target = 'content-frame';
-              link.style.display = 'block';
-              link.style.width = '100%';
-              link.style.textAlign = 'center';
-              link.style.background = '#6366f1';
-              link.style.color = '#fff';
-              link.style.fontWeight = 'bold';
-              link.style.fontSize = '1rem';
-              link.style.padding = '8px 0';
-              link.style.borderRadius = '8px';
-              link.style.marginTop = '4px';
-              link.style.textDecoration = 'none';
-              link.style.transition = 'background 0.2s';
-              link.onmouseover = () => link.style.background = '#4338ca';
-              link.onmouseout = () => link.style.background = '#6366f1';
-              card.appendChild(link);
-            } else {
-              // หลายเครื่อง
-              const title = document.createElement('div');
-              title.textContent = `ตำแหน่งนี้มี ${location.devices.length} เครื่อง`;
-              title.style.fontSize = '1.15rem';
-              title.style.fontWeight = 'bold';
-              title.style.color = '#3730a3';
-              title.style.marginBottom = '12px';
-              title.style.textAlign = 'center';
-              card.appendChild(title);
-
-              location.devices.forEach((device, index) => {
-                const deviceDiv = document.createElement('div');
-                deviceDiv.style.border = '1px solid #e2e8f0';
-                deviceDiv.style.borderRadius = '8px';
-                deviceDiv.style.padding = '8px';
-                deviceDiv.style.marginBottom = '8px';
-                deviceDiv.style.background = '#f8fafc';
-
-                const deviceName = document.createElement('div');
-                deviceName.textContent = `${device.ups_id} - ${device.pea_code_name}`;
-                deviceName.style.fontSize = '0.95rem';
-                deviceName.style.fontWeight = 'bold';
-                deviceName.style.color = '#1e293b';
-                deviceName.style.marginBottom = '4px';
-                deviceDiv.appendChild(deviceName);
-
-                const deviceStatus = document.createElement('span');
-                deviceStatus.textContent = device.status ?? '-';
-                deviceStatus.className = `status ${device.statusClass}`;
-                deviceStatus.style.fontSize = '0.85rem';
-                deviceStatus.style.padding = '2px 8px';
-                deviceStatus.style.borderRadius = '12px';
-                deviceStatus.style.background = '#f1f5f9';
-                deviceDiv.appendChild(deviceStatus);
-
-                const deviceLink = document.createElement('a');
-                deviceLink.href = `ups_detail.html?ups_id=${device.ups_id}`;
-                deviceLink.textContent = 'ดูข้อมูล';
-                deviceLink.target = 'content-frame';
-                deviceLink.style.display = 'inline-block';
-                deviceLink.style.marginTop = '4px';
-                deviceLink.style.padding = '4px 8px';
-                deviceLink.style.background = '#6366f1';
-                deviceLink.style.color = '#fff';
-                deviceLink.style.fontSize = '0.8rem';
-                deviceLink.style.borderRadius = '4px';
-                deviceLink.style.textDecoration = 'none';
-                deviceLink.style.transition = 'background 0.2s';
-                deviceLink.onmouseover = () => deviceLink.style.background = '#4338ca';
-                deviceLink.onmouseout = () => deviceLink.style.background = '#6366f1';
-                deviceDiv.appendChild(deviceLink);
-
-                card.appendChild(deviceDiv);
-              });
-            }
-
-            const marker = L.marker([location.latitude, location.longitude]).addTo(map);
-
-            marker.on('mouseover', function (e) {
-                clearTimeout(tooltipTimeout);
-                if (openTooltip && openTooltip !== this) {
-                    openTooltip.closeTooltip();
-                }
-                this.bindTooltip(card, { permanent: true, direction: 'auto', interactive: true }).openTooltip();
-                openTooltip = this;
+            const card = createTooltipCard(location);
+            const markerColor = getMarkerColor(location.devices);
+            
+            const customIcon = L.divIcon({
+              className: 'custom-marker',
+              html: `<svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 19.4 12.5 41 12.5 41S25 19.4 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="#333" stroke="#fff" stroke-width="2"/>
+                <circle cx="12.5" cy="12.5" r="8" fill="${markerColor}"/>
+              </svg>`,
+              iconSize: [25, 41],
+              iconAnchor: [12, 41]
             });
-
-            marker.on('mouseout', function (e) {
-                const marker = this;
-                tooltipTimeout = setTimeout(() => {
-                    marker.closeTooltip();
-                    if (openTooltip === marker) openTooltip = null;
-                }, 500);
-            });
+            
+            const marker = L.marker([location.latitude, location.longitude], { icon: customIcon }).addTo(map);
+            addMarkerEvents(marker, card);
           }
         });
+        
+        createProvinceCards(tools);
+        
+        document.getElementById('loadingScreen').classList.add('hidden');
+        document.getElementById('provinceGrid').style.display = 'flex';
+        
       } catch (error) {
-        console.error('Error fetching data:', error);
-        alert('ไม่สามารถโหลดข้อมูลแผนที่ได้');
+        console.error('Error loading map data:', error);
+        document.getElementById('loadingScreen').classList.add('hidden');
+        alert('ไม่สามารถโหลดข้อมูลแผนที่ได้: ' + error.message);
+      }
+    }
+
+    function getProvinceFromCoordinates(lat, lng) {
+      const provinces = {
+        'กรุงเทพมหานคร': { lat: [13.5, 13.95], lng: [100.3, 100.9] },
+        'นนทบุรี': { lat: [13.8, 14.2], lng: [100.3, 100.6] },
+        'ปทุมธานี': { lat: [13.9, 14.3], lng: [100.4, 100.8] },
+        'สมุทรปราการ': { lat: [13.4, 13.8], lng: [100.4, 101.0] },
+        'สมุทรสาคร': { lat: [13.2, 13.7], lng: [99.8, 100.4] },
+        'นครปฐม': { lat: [13.6, 14.2], lng: [99.8, 100.4] },
+        'เชียงใหม่': { lat: [18.2, 20.0], lng: [98.0, 100.0] },
+        'เชียงราย': { lat: [19.0, 20.5], lng: [99.0, 100.5] },
+        'ลำปาง': { lat: [17.8, 18.8], lng: [99.0, 100.0] },
+        'ลำพูน': { lat: [18.0, 18.8], lng: [98.8, 99.4] },
+        'แม่ฮ่องสอน': { lat: [19.0, 20.0], lng: [97.5, 98.5] },
+        'น่าน': { lat: [18.0, 19.5], lng: [100.0, 101.5] },
+        'พะเยา': { lat: [19.0, 19.8], lng: [99.5, 100.5] },
+        'แพร่': { lat: [17.8, 18.8], lng: [100.0, 101.0] },
+        'อุตรดิตถ์': { lat: [17.2, 17.8], lng: [100.0, 100.8] },
+        'ตาก': { lat: [16.0, 17.5], lng: [98.0, 99.5] },
+        'สุโขทัย': { lat: [17.0, 17.8], lng: [99.5, 100.5] },
+        'พิษณุโลก': { lat: [16.5, 17.2], lng: [100.0, 101.0] },
+        'กำแพงเพชร': { lat: [16.0, 16.8], lng: [99.0, 100.0] },
+        'พิจิตร': { lat: [16.2, 16.8], lng: [100.0, 100.8] },
+        'เพชรบูรณ์': { lat: [15.5, 16.8], lng: [100.5, 101.5] },
+        'นครสวรรค์': { lat: [15.5, 16.0], lng: [100.0, 100.8] },
+        'อุทัยธานี': { lat: [15.0, 15.8], lng: [99.8, 100.5] },
+        'ชัยนาท': { lat: [15.0, 15.5], lng: [100.0, 100.5] },
+        'ลพบุรี': { lat: [14.5, 15.5], lng: [100.5, 101.5] },
+        'สิงห์บุรี': { lat: [14.8, 15.2], lng: [100.2, 100.8] },
+        'อ่างทอง': { lat: [14.4, 14.8], lng: [100.2, 100.8] },
+        'สระบุรี': { lat: [14.2, 15.0], lng: [100.8, 101.5] },
+        'นครนายก': { lat: [14.0, 14.5], lng: [101.0, 101.5] },
+        'ปราจีนบุรี': { lat: [13.8, 14.5], lng: [101.2, 102.0] },
+        'ฉะเชิงเทรา': { lat: [13.5, 14.2], lng: [101.0, 101.8] },
+        'ชลบุรี': { lat: [12.5, 13.8], lng: [100.8, 102.0] },
+        'ระยอง': { lat: [12.4, 13.2], lng: [101.0, 101.8] },
+        'จันทบุรี': { lat: [12.2, 13.0], lng: [101.8, 102.5] },
+        'ตราด': { lat: [11.8, 12.8], lng: [102.2, 102.8] },
+        'สระแก้ว': { lat: [13.5, 14.2], lng: [102.0, 102.8] },
+        'กาญจนบุรี': { lat: [13.8, 15.2], lng: [98.5, 99.8] },
+        'ราชบุรี': { lat: [13.2, 14.0], lng: [99.5, 100.2] },
+        'เพชรบุรี': { lat: [12.8, 13.5], lng: [99.5, 100.2] },
+        'ประจุวบคีรีขันธ์': { lat: [11.5, 12.8], lng: [99.5, 100.2] },
+        'ขอนแก่น': { lat: [15.5, 17.0], lng: [102.0, 103.5] },
+        'อุดรธานี': { lat: [17.0, 18.0], lng: [102.5, 103.5] },
+        'เลย': { lat: [17.0, 18.0], lng: [101.0, 102.5] },
+        'หนองคาย': { lat: [17.5, 18.5], lng: [102.5, 104.0] },
+        'บึงกาฬ': { lat: [18.0, 18.8], lng: [103.5, 104.5] },
+        'นครพนม': { lat: [16.5, 17.5], lng: [104.0, 105.0] },
+        'สกลนคร': { lat: [16.8, 17.8], lng: [103.5, 104.5] },
+        'มุกดาหาร': { lat: [16.2, 17.0], lng: [104.5, 105.0] },
+        'กาฬสินธุ์': { lat: [16.2, 17.2], lng: [103.0, 104.0] },
+        'ร้อยเอ็ด': { lat: [15.8, 16.8], lng: [103.0, 104.5] },
+        'มหาสารคาม': { lat: [15.5, 16.5], lng: [103.0, 104.0] },
+        'ยโสธร': { lat: [15.0, 16.0], lng: [104.0, 105.0] },
+        'อำนาจเจริญ': { lat: [15.5, 16.2], lng: [104.5, 105.5] },
+        'อุบลราชธานี': { lat: [14.5, 15.8], lng: [104.5, 105.8] },
+        'ศรีสะเกษ': { lat: [14.0, 15.5], lng: [103.5, 105.0] },
+        'สุรินทร์': { lat: [14.5, 15.2], lng: [103.0, 104.0] },
+        'บุรีรัมย์': { lat: [14.2, 15.5], lng: [102.5, 103.8] },
+        'ชัยภูมิ': { lat: [15.0, 16.5], lng: [101.5, 102.8] },
+        'นครราชสีมา': { lat: [14.0, 15.8], lng: [101.5, 103.0] },
+        'นครศรีธรรมราช': { lat: [8.0, 9.0], lng: [99.5, 100.5] },
+        'กระบี่': { lat: [7.8, 8.8], lng: [98.5, 99.5] },
+        'พังงา': { lat: [8.0, 9.0], lng: [98.0, 99.0] },
+        'ภูเก็ต': { lat: [7.8, 8.2], lng: [98.2, 98.5] },
+        'สุราษฎร์ธานี': { lat: [8.5, 9.8], lng: [98.8, 100.0] },
+        'ระนอง': { lat: [9.5, 10.5], lng: [98.5, 99.0] },
+        'ชุมพร': { lat: [10.0, 11.0], lng: [99.0, 99.8] },
+        'สงขลา': { lat: [6.8, 7.8], lng: [100.0, 101.0] },
+        'สตูล': { lat: [6.2, 7.0], lng: [99.5, 100.2] },
+        'ตรัง': { lat: [7.0, 8.0], lng: [99.2, 100.0] },
+        'พัทลุง': { lat: [7.2, 8.0], lng: [100.0, 100.8] },
+        'ปัตตานี': { lat: [6.5, 7.2], lng: [101.0, 101.8] },
+        'ยะลา': { lat: [5.8, 6.8], lng: [101.0, 101.8] },
+        'นราธิวาส': { lat: [5.5, 6.5], lng: [101.5, 102.0] }
+      };
+      
+      for (const [province, bounds] of Object.entries(provinces)) {
+        if (lat >= bounds.lat[0] && lat <= bounds.lat[1] && 
+            lng >= bounds.lng[0] && lng <= bounds.lng[1]) {
+          return province;
+        }
+      }
+      return 'ไม่ระบุจังหวัด';
+    }
+
+    function createProvinceCards(tools) {
+      // Use cached data if available
+      if (provinceCache) {
+        renderProvinceCards(provinceCache);
+        return;
+      }
+      
+      const provinceData = {};
+      
+      tools.forEach(location => {
+        if (location.latitude && location.longitude) {
+          const calculatedProvince = getProvinceFromCoordinates(location.latitude, location.longitude);
+          const province = location.devices?.[0]?.province || calculatedProvince;
+          
+          if (!provinceData[province]) {
+            provinceData[province] = 0;
+          }
+          provinceData[province]++;
+        }
+      });
+      
+      // Cache the province data
+      provinceCache = provinceData;
+      renderProvinceCards(provinceData);
+    }
+    
+    function renderProvinceCards(provinceData) {
+      const provinceGrid = document.getElementById('provinceGrid');
+      const searchInput = document.getElementById('searchInput');
+      
+      Object.entries(provinceData)
+        .sort(([a], [b]) => a.localeCompare(b, 'th'))
+        .forEach(([province, count]) => {
+          const card = document.createElement('div');
+          card.className = 'province-card';
+          card.dataset.province = province;
+          
+          card.innerHTML = `
+            <div class="province-name">${province}</div>
+            <div class="province-count">${count} จุด</div>
+          `;
+          
+          // Add accessibility attributes
+          card.setAttribute('tabindex', '0');
+          card.setAttribute('role', 'gridcell');
+          card.setAttribute('aria-label', `จังหวัด${province} มี ${count} จุด`);
+          
+          const clickHandler = () => {
+            document.querySelectorAll('.province-card').forEach(c => {
+              c.classList.remove('active');
+              c.setAttribute('aria-selected', 'false');
+            });
+            card.classList.add('active');
+            card.setAttribute('aria-selected', 'true');
+            document.getElementById('showAllBtn').classList.remove('hidden');
+            filterMarkersByProvince(province, allTools);
+          };
+          
+          card.addEventListener('click', clickHandler);
+          card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              clickHandler();
+            }
+          });
+          
+          provinceGrid.appendChild(card);
+        });
+      
+      // Debounced search function
+      const debouncedSearch = debounce((searchTerm) => {
+        const cards = document.querySelectorAll('.province-card');
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+          const provinceName = card.dataset.province.toLowerCase();
+          if (provinceName.includes(searchTerm)) {
+            card.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+        
+        // Update aria-live region for screen readers
+        const searchHelp = document.getElementById('search-help');
+        searchHelp.textContent = `พบ ${visibleCount} จังหวัด`;
+        currentFocusIndex = -1;
+      }, 300);
+      
+      searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        debouncedSearch(searchTerm);
+      });
+      
+      // Add keyboard navigation to search input
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const firstCard = document.querySelector('.province-card:not(.hidden)');
+          if (firstCard) {
+            currentFocusIndex = 0;
+            firstCard.focus();
+          }
+        }
+      });
+      
+      // Add global keyboard navigation
+      document.addEventListener('keydown', handleKeyboardNavigation);
+    }
+
+    function filterMarkersByProvince(selectedProvince, tools) {
+      map.eachLayer(layer => {
+        if (layer instanceof L.Marker) {
+          map.removeLayer(layer);
+        }
+      });
+      
+      const filteredTools = tools.filter(location => {
+        if (location.latitude && location.longitude) {
+          const calculatedProvince = getProvinceFromCoordinates(location.latitude, location.longitude);
+          const province = location.devices?.[0]?.province || calculatedProvince;
+          return province === selectedProvince;
+        }
+        return false;
+      });
+      
+      if (filteredTools.length > 0) {
+        const bounds = L.latLngBounds();
+        
+        filteredTools.forEach(location => {
+          if (location.latitude && location.longitude) {
+            bounds.extend([location.latitude, location.longitude]);
+            
+            const card = createTooltipCard(location);
+            const markerColor = getMarkerColor(location.devices);
+            const customIcon = L.divIcon({
+              className: 'custom-marker',
+              html: `<svg width="25" height="41" viewBox="0 0 25 41" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 19.4 12.5 41 12.5 41S25 19.4 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="#333" stroke="#fff" stroke-width="2"/>
+                <circle cx="12.5" cy="12.5" r="8" fill="${markerColor}"/>
+              </svg>`,
+              iconSize: [25, 41],
+              iconAnchor: [12, 41]
+            });
+            
+            const marker = L.marker([location.latitude, location.longitude], { icon: customIcon }).addTo(map);
+            addMarkerEvents(marker, card);
+          }
+        });
+        
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [20, 20] });
+        }
       }
     }
 
     loadMapData();
   </script>
-  
 </body>
 </html>

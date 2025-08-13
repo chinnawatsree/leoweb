@@ -16,17 +16,15 @@ if ($conn->connect_error) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $conn->real_escape_string(trim($_POST['username']));
     $password = $_POST['password'];
-
-    // Hash รหัสผ่านด้วย SHA256
     $hashedPassword = hash('sha256', $password);
 
-    // เตรียมคำสั่ง SQL ตรวจสอบผู้ใช้ (active เท่านั้น)
+    // ตรวจสอบ username และ password ก่อน
     $sql = "
-      SELECT u.user_id, u.user_name, r.role_name, s.status_name
+      SELECT u.user_id, u.user_name, r.role_name, s.status_name, u.status_id
       FROM users u
       JOIN roles r ON u.role_id = r.role_id
       JOIN user_status s ON u.status_id = s.status_id
-      WHERE u.user_name = ? AND u.user_password = ? AND u.status_id = 0
+      WHERE u.user_name = ? AND u.user_password = ?
       LIMIT 1";
 
     $stmt = $conn->prepare($sql);
@@ -37,22 +35,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
 
-        // เก็บข้อมูล session
-        $_SESSION['user_id'] = $user['user_id'];
-        $_SESSION['user_name'] = $user['user_name'];
-        $_SESSION['role'] = $user['role_name'];
-
-        // ไปหน้าหลัก (เปลี่ยน URL ตามต้องการ)
-        header("Location: sidebar.html");
-        exit();
+        // ตรวจสอบสถานะ active (สมมติว่า 0 = active, 1 = inactive)
+        if ($user['status_id'] == 0) {
+            $_SESSION['user_id'] = $user['user_id'];
+            $_SESSION['user_name'] = $user['user_name'];
+            $_SESSION['role'] = $user['role_name'];
+            header("Location: sidebar.html");
+            exit();
+        } else {
+            $errorMessage = urlencode("บัญชีนี้ถูกระงับ ไม่สามารถเข้าใช้งานเว็บไซต์ได้");
+            header("Location: index.html?error=$errorMessage");
+            exit();
+        }
     } else {
-        // ล้มเหลว เก็บ error message ใน session
-        $_SESSION['error'] = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง หรือบัญชีถูกระงับ";
-        header("Location: index.html");
+        $errorMessage = urlencode("username or password incorrect");
+        header("Location: index.html?error=$errorMessage");
         exit();
+
     }
 } else {
-    // ไม่ใช่ POST
     header("Location: index.html");
     exit();
-} 
+}

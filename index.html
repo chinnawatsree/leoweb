@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Login - Leonics UPS Monitoring</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+  // อ่าน error จาก URL query string
+  const params = new URLSearchParams(window.location.search);
+  const error = params.get('error');
+  if (error) {
+    alert(decodeURIComponent(error));
+    // ลบ error ออกจาก URL เพื่อไม่ให้ alert ซ้ำตอน refresh
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+</script>
 </head>
 <body class="bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 min-h-screen flex items-center justify-center px-4">
 
