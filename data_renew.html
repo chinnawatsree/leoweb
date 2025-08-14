@@ -62,9 +62,9 @@
     <!-- คำอธิบายสัญลักษณ์ Status -->
     <div class="bg-gray-50 rounded p-2 mb-3 border-l-4 border-blue-400">
       <div class="flex flex-wrap gap-4 text-xs text-gray-600">
-        <span class="flex items-center gap-1"><span class="text-green-600 font-bold text-lg">●</span> Normal - ระบบทำงานปกติ</span>
-        <span class="flex items-center gap-1"><span class="text-yellow-600 font-bold text-lg">▲</span> Minor - มีปัญหาเล็กน้อย</span>
-        <span class="flex items-center gap-1"><span class="text-orange-600 font-bold text-lg">■</span> Major - มีปัญหาร้ายแรง</span>
+        <span class="flex items-center gap-1"><span class="text-green-600 font-bold text-lg">🟢</span> Normal - ระบบทำงานปกติ</span>
+        <span class="flex items-center gap-1"><span class="text-yellow-600 font-bold text-lg">🟡</span> Minor - มีปัญหาเล็กน้อย</span>
+        <span class="flex items-center gap-1"><span class="text-orange-600 font-bold text-lg">🟠</span> Major - มีปัญหาร้ายแรง</span>
         <span class="flex items-center gap-1"><span class="text-red-600 font-bold text-lg">❌</span> Comm Error - ขาดการติดต่อ</span>
       </div>
     </div>
@@ -131,9 +131,9 @@
     const statusMeaning = statusTextMap[item.status] || 'Unknown';
     
     // แปลงเป็นสัญลักษณ์ที่ชัดเจนกว่า
-    const statusSymbol = statusMeaning === 'Normal' ? '●' :
-                         statusMeaning === 'Minor' ? '▲' :
-                         statusMeaning === 'Major' ? '■' :
+    const statusSymbol = statusMeaning === 'Normal' ? '🟢' :
+                         statusMeaning === 'Minor' ? '🟡' :
+                         statusMeaning === 'Major' ? '🟠' :
                          statusMeaning === 'Comm Error' ? '❌' : '?';
 
     const statusClass = statusMeaning === 'Normal' ? 'text-green-600 font-bold text-lg' :
