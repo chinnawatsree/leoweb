@@ -6,7 +6,7 @@ require_once 'db_config.php';
 $sql = "
 SELECT 
     dev.ups_id, 
-    s.event_name as status,
+    e.event_name as status,
     dev.latitude, 
     dev.longitude,
     ud.last_signal_updated,
@@ -25,7 +25,7 @@ LEFT JOIN (
     ) ud2 ON ud1.ups_id = ud2.ups_id AND ud1.last_signal_updated = ud2.max_date
 ) ud ON dev.ups_id = ud.ups_id
 LEFT JOIN 
-    status_events s ON ud.status_id = s.status_id
+    event_detail e ON ud.event_id = e.event_id
 WHERE 
     dev.latitude IS NOT NULL AND dev.longitude IS NOT NULL
 ";

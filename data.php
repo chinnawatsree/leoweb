@@ -1,15 +1,18 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
 header('Content-Type: application/json; charset=utf-8');
 
-require_once 'db_config.php';
+try {
+    require_once 'db_config.php';
 
 $pea_code_id = isset($_GET['pea_code_id']) ? intval($_GET['pea_code_id']) : 0;
 
 $sql = "
 SELECT 
     d.ups_id,
-    ud.status_id,
-    se.event_name,
+    e.status_id,
+    e.event_name,
     ud.last_signal_updated,
     ud.input_voltage,
     ud.output_voltage,
@@ -21,7 +24,7 @@ SELECT
     p.pea_code_name
 FROM 
     ups_devices d
-JOIN 
+LEFT JOIN 
     (
       SELECT ud1.*
       FROM ups_data ud1
@@ -32,11 +35,11 @@ JOIN
       ) ud2 ON ud1.ups_id = ud2.ups_id AND ud1.last_signal_updated = ud2.max_date
     ) ud ON d.ups_id = ud.ups_id
 LEFT JOIN 
-    status_events se ON ud.status_id = se.status_id
+    event_detail e ON ud.event_id = e.event_id
 JOIN 
     subregions s ON d.subregion_id = s.subregion_id
 JOIN 
-    regions r ON d.region_id = r.region_id
+    regions r ON s.region_id = r.region_id
 JOIN 
     peacodes p ON d.pea_code_id = p.pea_code_id
 WHERE 1
@@ -50,16 +53,15 @@ $sql .= " ORDER BY ud.last_signal_updated DESC LIMIT 100";
 
 $result = $conn->query($sql);
 
-if (!$result) {
-    echo json_encode(["error" => "ไม่สามารถดึงข้อมูลได้: " . $conn->error]);
-    $conn->close();
-    exit();
-}
+    if (!$result) {
+        throw new Exception("ไม่สามารถดึงข้อมูลได้: " . $conn->error);
+    }
 
 $data = [];
 while ($row = $result->fetch_assoc()) {
     // แปลง status_id เป็นข้อความ
-    switch ($row['status_id']) {
+    $status_id = $row['status_id'] ?? 'UNK';
+    switch ($status_id) {
         case '000': $status_text = 'Comm Error'; $status_icon = '❌'; break;
         case '001': $status_text = 'Minor'; $status_icon = '⚠️'; break;
         case '010': $status_text = 'Major'; $status_icon = '🔴'; break;
@@ -74,7 +76,7 @@ while ($row = $result->fetch_assoc()) {
         'ups_id'            => $row['ups_id'],
         'status'            => $status_icon,  // ไอคอน
         'event'             => $event_text,   // ข้อความ
-        'last_signal_updated' => $row['last_signal_updated'],
+        'last_signal_updated' => $row['last_signal_updated'] ?? 'No Data',
         'input_voltage'     => $row['input_voltage'],
         'output_voltage'    => $row['output_voltage'],
         'batt_temp'         => $row['batt_temp'],
@@ -86,6 +88,10 @@ while ($row = $result->fetch_assoc()) {
     ];
 }
 
-echo json_encode($data, JSON_UNESCAPED_UNICODE);
-$conn->close();
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    $conn->close();
+    
+} catch (Exception $e) {
+    echo json_encode(["error" => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+}
 ?>

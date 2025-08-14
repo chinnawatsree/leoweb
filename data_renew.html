@@ -299,13 +299,20 @@ function fetchData() {
   showLoading(); // 👈 เริ่มโหลด
 
   fetch("data.php")
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
     .then(data => {
+      console.log('Data received:', data);
       fullData = data;
       applyFilters();
     })
     .catch(error => {
       console.error("เกิดข้อผิดพลาดในการโหลดข้อมูล:", error);
+      document.getElementById('ups-table').innerHTML = `<tr><td colspan="12" class="text-center text-red-500 py-4">Error: ${error.message}</td></tr>`;
     })
     .finally(() => {
       hideLoading(); // 👈 โหลดเสร็จ
