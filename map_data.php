@@ -2,6 +2,7 @@
 header('Content-Type: application/json; charset=utf-8');
 
 require_once 'db_config.php';
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT); // เปิด debug
 
 $sql = "
 SELECT 
@@ -32,6 +33,11 @@ WHERE
 
 $result = $conn->query($sql);
 
+if (!$result) {
+    echo json_encode(["error" => $conn->error]);
+    exit;
+}
+
 $locationGroups = [];
 
 while ($row = $result->fetch_assoc()) {
@@ -61,4 +67,3 @@ $data = array_values($locationGroups);
 
 echo json_encode($data, JSON_UNESCAPED_UNICODE);
 $conn->close();
-?>
