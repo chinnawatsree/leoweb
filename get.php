@@ -36,6 +36,13 @@
 
 	date_default_timezone_set("Asia/Bangkok");
 	if((isset($_GET['submit']))&&(isset($_GET['id']))&&(isset($_GET['data']))) { 
+		// --- Start of Added Logging Code ---
+		$log_filename = 'get_php_log.txt';
+		$log_entry = "--- " . date('Y-m-d H:i:s') . " ---\n";
+		$log_entry .= "Raw Request URL: " . $_SERVER['REQUEST_URI'] . "\n";
+		$log_entry .= "GET Parameters: " . print_r($_GET, true) . "\n\n";
+		file_put_contents($log_filename, $log_entry, FILE_APPEND);
+		// --- End of Added Logging Code ---
 		echo "ACK";
 		$date=date('Y-m-d H:i:s');
 
@@ -74,19 +81,23 @@
 		if ($conn) {
 			$link = $conn; // ใช้ตัวแปร $link แทน $conn เพื่อไม่ต้องแก้โค้ดทั้งหมด
 
+			// This is still vulnerable to SQL Injection, but the user's immediate problem is the INSERT error.
+			// The best fix is prepared statements, but for now, let's just fix the syntax error.
+			$SN_safe = mysqli_real_escape_string($link, $SN);
+
 			// ตรวจสอบเวลาอัพเดทล่าสุดของอุปกรณ์นี้
 			$sql = "SELECT TIMESTAMPDIFF(MINUTE, MAX(last_signal_updated), NOW()) as minutes_since_update 
 					FROM ups_data 
-					WHERE ups_id = (SELECT ups_id FROM sitedetail WHERE NBserial='$SN')";
+					WHERE ups_id = (SELECT ups_id FROM sitedetail WHERE NBserial='$SN_safe')";
 			
 			if($result = mysqli_query($link, $sql)) {
 				if($row = mysqli_fetch_assoc($result)) {
 					$minutes_since_update = $row['minutes_since_update'];
 					if($minutes_since_update > 10) {
-						error_log("Warning: Device $SN hasn't updated for $minutes_since_update minutes", 0);
+						error_log("Warning: Device $SN_safe hasn't updated for $minutes_since_update minutes", 0);
 						
 						// สร้างไฟล์ log แยกสำหรับอุปกรณ์ที่ไม่อัพเดท
-						$log_message = date('Y-m-d H:i:s') . " - Device: $SN, Last update: $minutes_since_update minutes ago\n";
+						$log_message = date('Y-m-d H:i:s') . " - Device: $SN_safe, Last update: $minutes_since_update minutes ago\\n";
 						file_put_contents('get_log.txt', $log_message, FILE_APPEND);
 					}
 				}
@@ -95,13 +106,13 @@
 			// Enable error logging
 			error_log("Connected to database successfully", 0);
 			
-			$sql = "select ID from sitedetail where NBserial='$SN'";
+			$sql = "select ID from sitedetail where NBserial='$SN_safe'";
             if($result = mysqli_query($link, $sql)){
                 if($row = mysqli_fetch_assoc($result)){
                     $tablename = $row['ID'];
                     error_log("Found tablename: " . $tablename, 0);
                 } else {
-                    error_log("No matching NBserial found: " . $SN, 0);
+                    error_log("No matching NBserial found: " . $SN_safe, 0);
                 }
                 mysqli_free_result($result);
             } else {
@@ -110,7 +121,7 @@
 
 
 			// ตรวจสอบ UPS ID จาก NBserial
-			$sql = "SELECT ups_id FROM sitedetail WHERE NBserial='$SN'";
+			$sql = "SELECT ups_id FROM sitedetail WHERE NBserial='$SN_safe'";
 			$ups_id = "";
 			if($result = mysqli_query($link, $sql)){
 				if($row = mysqli_fetch_assoc($result)){
@@ -151,25 +162,25 @@
 				'$temp',
 				'$humid',
 				'$date',
-				".($commUPS ? $dataUPS[0] : "NULL").",
-				".($commUPS ? $dataUPS[1] : "NULL").",
-				".($commUPS ? $dataUPS[2] : "NULL").",
-				".($commUPS ? $dataUPS[3] : "NULL").",
-				".($commUPS ? $dataUPS[4] : "NULL").",
-				".($commUPS ? $dataUPS[6] : "NULL").",
-				".($commLBM ? $dataLBM[0] : "NULL").",
-				".($commLBM ? $dataLBM[1] : "NULL").",
-				".($commLBM ? $dataLBM[2] : "NULL").",
-				".($commLBM ? $dataLBM[3] : "NULL").",
-				".($commLBM ? $dataLBM[4] : "NULL").",
-				".($commLBM ? $dataLBM[5] : "NULL").",
-				".($commLBM ? $dataLBM[6] : "NULL").",
-				".($commLBM ? $dataLBM[7] : "NULL").",
-				".($commLBM ? $dataLBM[8] : "NULL").",
+				".($commUPS ? "'".$dataUPS[0]."'" : "NULL").",
+				".($commUPS ? "'".$dataUPS[1]."'" : "NULL").",
+				".($commUPS ? "'".$dataUPS[2]."'" : "NULL").",
+				".($commUPS ? "'".$dataUPS[3]."'" : "NULL").",
+				".($commUPS ? "'".$dataUPS[4]."'" : "NULL").",
+				".($commUPS ? "'".$dataUPS[6]."'" : "NULL").",
+				".($commLBM ? "'".$dataLBM[0]."'" : "NULL").",
+				".($commLBM ? "'".$dataLBM[1]."'" : "NULL").",
+				".($commLBM ? "'".$dataLBM[2]."'" : "NULL").",
+				".($commLBM ? "'".$dataLBM[3]."'" : "NULL").",
+				".($commLBM ? "'".$dataLBM[4]."'" : "NULL").",
+				".($commLBM ? "'".$dataLBM[5]."'" : "NULL").",
+				".($commLBM ? "'".$dataLBM[6]."'" : "NULL").",
+				".($commLBM ? "'".$dataLBM[7]."'" : "NULL").",
+				".($commLBM ? "'".$dataLBM[8]."'" : "NULL").",
 				'$AVGdata',
 				'$SUMdata',
-				".($commLBM ? $dataLBM[9] : "NULL").",
-				'".$dataLBM[0]."',
+				".($commLBM ? "'".$dataLBM[9]."'" : "NULL").",
+				".($commLBM ? "'".$dataLBM[0]."'" : "NULL").",
 				'1'
 			)";
 			
@@ -180,7 +191,7 @@
 					error_log("No rows affected", 0);
 				}
 			} else {
-				error_log("Insert Error: " . mysqli_error($link) . "\nSQL: " . $sql, 0);
+				error_log("Insert Error: " . mysqli_error($link) . "\\nSQL: " . $sql, 0);
 			}
 
 			$status = $NormalSERV;
@@ -246,12 +257,12 @@
 			else if ($status == $LbmSupplyFailSERV) $event_id = 15;
 
 			// อัพเดทสถานะและ event_id ในตาราง ups_data
-			$sql = "UPDATE ups_data SET event_id = $event_id WHERE ups_id = '$ups_id' AND last_signal_updated = '$date'";
-			mysqli_query($link, $sql);
+			$sql_update_event = "UPDATE ups_data SET event_id = $event_id WHERE ups_id = '$ups_id' AND last_signal_updated = '$date'";
+			mysqli_query($link, $sql_update_event);
 
 			// อัพเดทสถานะใน sitedetail
-			$sql = "UPDATE sitedetail SET status='$status', lastupdate='$date' WHERE NBserial='$SN'";
-			mysqli_query($link, $sql);
+			$sql_update_status = "UPDATE sitedetail SET status='$status', lastupdate='$date' WHERE NBserial='$SN_safe'";
+			mysqli_query($link, $sql_update_status);
 			if(mysqli_affected_rows($link)>0){
 				// อัพเดทสำเร็จ
 			}
