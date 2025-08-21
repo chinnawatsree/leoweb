@@ -58,3 +58,289 @@ GET Parameters: Array
 )
 
 
+--- 2025-08-20 11:44:27 ---
+Raw Request URL: /get.php?submit=1&id=TEST001&data=-55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => TEST001
+    [data] => -55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+)
+
+
+--- 2025-08-20 11:44:27 ---
+Raw Request URL: /get.php?submit=1&id=TEST001&data=-55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => TEST001
+    [data] => -55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+)
+
+
+--- 2025-08-20 11:44:28 ---
+Raw Request URL: /get.php?submit=1&id=TEST001&data=-55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => TEST001
+    [data] => -55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+)
+
+
+--- 2025-08-20 11:44:28 ---
+Raw Request URL: /get.php?submit=1&id=TEST001&data=-55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => TEST001
+    [data] => -55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+)
+
+
+--- 2025-08-20 11:44:28 ---
+Raw Request URL: /get.php?submit=1&id=TEST001&data=-55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => TEST001
+    [data] => -55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+)
+
+
+--- 2025-08-20 11:44:28 ---
+Raw Request URL: /get.php?submit=1&id=TEST001&data=-55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => TEST001
+    [data] => -55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+)
+
+
+--- 2025-08-20 11:44:28 ---
+Raw Request URL: /get.php?submit=1&id=TEST001&data=-55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => TEST001
+    [data] => -55,32.5,75,12.1:244:0:90:230:50:45:A0~3.1:3.2:3.3:3.4:3.1:3.2:3.3:3.4:48:OK
+)
+
+
+--- 2025-08-20 11:53:01 ---
+Raw Request URL: /get.php?submit=1&id=TEST002&data=-60,28.5,65,11.8:240:0:85:220:48:42:A0~2.9:3.0:3.1:3.2:2.8:2.9:3.0:3.1:46:OK
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => TEST002
+    [data] => -60,28.5,65,11.8:240:0:85:220:48:42:A0~2.9:3.0:3.1:3.2:2.8:2.9:3.0:3.1:46:OK
+)
+
+
+--- 2025-08-20 17:32:03 ---
+Raw Request URL: /get.php?submit=ok&id=test&data=1,2,3,err~err
+GET Parameters: Array
+(
+    [submit] => ok
+    [id] => test
+    [data] => 1,2,3,err~err
+)
+
+
+--- 2025-08-21 09:30:33 ---
+Raw Request URL: /get.php?submit=1&id=test&data=1,2,3,err~err
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => test
+    [data] => 1,2,3,err~err
+)
+
+
+--- 2025-08-21 09:31:24 ---
+Raw Request URL: /get.php?submit=1&id=test&data=1,2,3,err~err
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => test
+    [data] => 1,2,3,err~err
+)
+
+
+--- 2025-08-21 09:32:31 ---
+Raw Request URL: /get.php?submit=1&id=test&data=1,2,3,err~err
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => test
+    [data] => 1,2,3,err~err
+)
+
+
+--- 2025-08-21 10:13:39 ---
+Raw Request URL: /get.php?submit=1&id=test&data=1,2,3,err~err
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => test
+    [data] => 1,2,3,err~err
+)
+
+
+--- 2025-08-21 10:23:15 ---
+Raw Request URL: /get.php?submit=1&id=test&data=1,2,3,err~err
+GET Parameters: Array
+(
+    [submit] => 1
+    [id] => test
+    [data] => 1,2,3,err~err
+)
+
+
+[2025-08-21 10:54:07] START get.php | URI=/get.php?submit=1&id=test&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 10:54:07] ENTER IF submit&id&data present
+[2025-08-21 10:54:07] Raw SN=test | data[0..] count=4
+[2025-08-21 10:54:07] Connected to database successfully
+[2025-08-21 10:54:07] No matching NBserial found: test
+[2025-08-21 10:54:07] NBserial=test | UPS_ID raw='' len=0 hex=
+[2025-08-21 10:54:07] NBserial=test | UPS_ID sanitized='' len=0 hex=
+[2025-08-21 10:54:07] FK check failed: ups_id='' not found in ups_devices (NBserial=test)
+[2025-08-21 11:22:22] START get.php | URI=/get.php?submit=1&id=test&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 11:22:22] ENTER IF submit&id&data present
+[2025-08-21 11:22:22] Raw SN=test | data[0..] count=4
+[2025-08-21 11:22:22] Connected to database successfully
+[2025-08-21 11:22:22] No matching NBserial found: test
+[2025-08-21 11:22:22] NBserial=test | UPS_ID raw='' len=0 hex=
+[2025-08-21 11:22:22] NBserial=test | UPS_ID sanitized='' len=0 hex=
+[2025-08-21 11:22:22] FK check failed: ups_id='' not found in ups_devices (NBserial=test)
+[2025-08-21 11:32:26] START get.php | URI=/get.php?submit=1&id=20001&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 11:32:26] ENTER IF submit&id&data present
+[2025-08-21 11:32:26] Raw SN=20001 | data[0..] count=4
+[2025-08-21 11:32:26] Connected to database successfully
+[2025-08-21 11:32:26] Found tablename: 43id21
+[2025-08-21 11:32:26] NBserial=20001 | UPS_ID raw='UPS177' len=6 hex=555053313737
+[2025-08-21 11:32:26] NBserial=20001 | UPS_ID sanitized='UPS177' len=6 hex=555053313737
+[2025-08-21 11:32:26] FK check failed: ups_id='UPS177' not found in ups_devices (NBserial=20001)
+[2025-08-21 11:49:28] START get.php | URI=/get.php?submit=1&id=20001&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 11:49:28] ENTER IF submit&id&data present
+[2025-08-21 11:49:28] Raw SN=20001 | data_count=4 | Array
+(
+    [0] => 1
+    [1] => 2
+    [2] => 3
+    [3] => err~err
+)
+
+[2025-08-21 11:49:28] UPS data invalid | Array
+(
+    [0] => err
+)
+
+[2025-08-21 11:49:28] LBM data invalid | Array
+(
+    [0] => err
+)
+
+[2025-08-21 11:49:28] Connected to database successfully
+[2025-08-21 11:49:28] NBserial=20001
+[2025-08-21 11:49:28] Query sitedetail | SELECT ups_id FROM sitedetail WHERE NBserial='20001'
+[2025-08-21 11:49:28] Fetched ups_id from sitedetail | UPS177
+[2025-08-21 11:49:28] Query ups_devices check | SELECT ups_id FROM ups_devices WHERE ups_id='UPS177'
+[2025-08-21 11:49:28] FK check failed: ups_id not found in ups_devices | UPS177
+[2025-08-21 11:50:43] START get.php | URI=/get.php?submit=1&id=test&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 11:50:43] ENTER IF submit&id&data present
+[2025-08-21 11:50:43] Raw SN=test | data_count=4 | Array
+(
+    [0] => 1
+    [1] => 2
+    [2] => 3
+    [3] => err~err
+)
+
+[2025-08-21 11:50:43] UPS data invalid | Array
+(
+    [0] => err
+)
+
+[2025-08-21 11:50:43] LBM data invalid | Array
+(
+    [0] => err
+)
+
+[2025-08-21 11:50:43] Connected to database successfully
+[2025-08-21 11:50:43] NBserial=test
+[2025-08-21 11:50:43] Query sitedetail | SELECT ups_id FROM sitedetail WHERE NBserial='test'
+[2025-08-21 11:50:43] Fetched ups_id from sitedetail | UPST00
+[2025-08-21 11:50:43] Query ups_devices check | SELECT ups_id FROM ups_devices WHERE ups_id='UPST00'
+[2025-08-21 11:50:43] Insert ups_data | INSERT INTO ups_data (
+            `ups_id`, 
+            `signal`, 
+            `env_temp`,
+            `RH`, 
+            `last_signal_updated`
+        ) VALUES (
+            'UPST00',
+            '1',
+            '2',
+            '3',
+            '2025-08-21 11:50:43'
+        )
+[2025-08-21 11:51:10] START get.php | URI=/get.php?submit=1&id=USPT00&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 11:51:10] ENTER IF submit&id&data present
+[2025-08-21 11:51:10] Raw SN=USPT00 | data_count=4 | Array
+(
+    [0] => 1
+    [1] => 2
+    [2] => 3
+    [3] => err~err
+)
+
+[2025-08-21 11:51:10] UPS data invalid | Array
+(
+    [0] => err
+)
+
+[2025-08-21 11:51:10] LBM data invalid | Array
+(
+    [0] => err
+)
+
+[2025-08-21 11:51:10] Connected to database successfully
+[2025-08-21 11:51:10] NBserial=USPT00
+[2025-08-21 11:51:10] Query sitedetail | SELECT ups_id FROM sitedetail WHERE NBserial='USPT00'
+[2025-08-21 11:51:10] No matching NBserial in sitedetail | USPT00
+[2025-08-21 11:51:10] Empty ups_id after lookup, NBserial=USPT00
+[2025-08-21 11:55:55] START get.php | URI=/get.php?submit=1&id=USPT00&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 11:55:55] Connected to database successfully
+[2025-08-21 11:55:55] Query ups_devices by NBserial | SELECT ups_id FROM ups_devices WHERE NBserial='USPT00'
+[2025-08-21 11:57:54] START get.php | URI=/get.php?submit=1&id=USPT00&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 11:57:54] Connected to database successfully
+[2025-08-21 11:57:54] Query ups_devices by NBserial | SELECT ups_id FROM ups_devices WHERE NBserial='USPT00'
+[2025-08-21 11:57:54] No matching NBserial in ups_devices | USPT00
+[2025-08-21 11:57:54] Empty ups_id | NBserial=USPT00
+[2025-08-21 11:59:00] START get.php | URI=/get.php?submit=1&id=USPT00&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 11:59:00] Connected to database successfully
+[2025-08-21 11:59:00] Query ups_devices by NBserial | SELECT ups_id FROM ups_devices WHERE NBserial='USPT00'
+[2025-08-21 11:59:00] No matching NBserial in ups_devices | USPT00
+[2025-08-21 11:59:00] Empty ups_id | NBserial=USPT00
+[2025-08-21 12:01:07] START get.php | URI=/get.php?submit=1&id=UPST00&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 12:01:07] Connected to database successfully
+[2025-08-21 12:01:07] Query ups_devices by NBserial | SELECT ups_id FROM ups_devices WHERE NBserial='UPST00'
+[2025-08-21 12:01:07] Fetched ups_id from ups_devices | UPST00
+[2025-08-21 12:01:07] Data inserted successfully
+[2025-08-21 12:04:30] START get.php | URI=/get.php?submit=1&id=UPST00&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 12:04:30] Connected to database successfully
+[2025-08-21 12:04:30] Query ups_devices by NBserial | SELECT ups_id FROM ups_devices WHERE NBserial='UPST00'
+[2025-08-21 12:04:30] Fetched ups_id from ups_devices | UPST00
+[2025-08-21 12:04:30] Data inserted successfully
+[2025-08-21 12:04:50] START get.php | URI=/get.php?submit=1&id=UPST00&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 12:04:50] Connected to database successfully
+[2025-08-21 12:04:50] Query ups_devices by NBserial | SELECT ups_id FROM ups_devices WHERE NBserial='UPST00'
+[2025-08-21 12:04:50] Fetched ups_id from ups_devices | UPST00
+[2025-08-21 12:04:50] Data inserted successfully
+[2025-08-21 12:04:50] START get.php | URI=/get.php?submit=1&id=UPST00&data=1,2,3,err~err | METHOD=GET
+[2025-08-21 12:04:50] Connected to database successfully
+[2025-08-21 12:04:50] Query ups_devices by NBserial | SELECT ups_id FROM ups_devices WHERE NBserial='UPST00'
+[2025-08-21 12:04:50] Fetched ups_id from ups_devices | UPST00
+[2025-08-21 12:04:50] Data inserted successfully
