@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>UPS Monitoring</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -26,13 +26,13 @@
       <button onclick="setRegionFilter('South2')" class="region-btn bg-blue-500 text-white rounded px-2 sm:px-3 py-1 sm:py-2 hover:bg-blue-600 text-xs sm:text-sm min-h-[32px] sm:min-h-[36px]">South2</button>
       <button onclick="setRegionFilter('South3')" class="region-btn bg-blue-500 text-white rounded px-2 sm:px-3 py-1 sm:py-2 hover:bg-blue-600 text-xs sm:text-sm min-h-[32px] sm:min-h-[36px]">South3</button>
       <button onclick="setRegionFilter('SparePart')" class="region-btn bg-blue-500 text-white rounded px-2 sm:px-3 py-1 sm:py-2 hover:bg-blue-600 text-xs sm:text-sm min-h-[32px] sm:min-h-[36px]">SparePart</button>
-      <button onclick="clearFiltersAndReload('')" class="region-btn bg-gray-400 text-white rounded px-2 sm:px-3 py-1 sm:py-2 hover:bg-gray-500 text-xs sm:text-sm min-h-[32px] sm:min-h-[36px]">ทั้งหมด</button>
+      <button onclick="clearFiltersAndReload()" class="region-btn bg-gray-400 text-white rounded px-2 sm:px-3 py-1 sm:py-2 hover:bg-gray-500 text-xs sm:text-sm min-h-[32px] sm:min-h-[36px]">ทั้งหมด</button>
     </div>
 
     <!-- Filters และ Search -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
       <input id="searchInput" type="text" placeholder="ค้นหา UPS ID, Province, หรือ PEA" class="border rounded px-3 py-2 w-full sm:w-auto sm:flex-1 text-sm sm:text-base min-h-[40px]" />
-
+      
       <select id="subregionFilter" class="border rounded px-3 py-2 w-full sm:w-auto text-sm sm:text-base min-h-[40px]">
         <option value="">-- Province --</option>
       </select>
@@ -46,18 +46,17 @@
       </select>
 
       <div id="dataCount" class="text-gray-600 font-medium text-sm sm:text-base whitespace-nowrap">
-      แสดงทั้งหมด 0 รายการ
+        แสดงทั้งหมด 0 รายการ
       </div>
-
     </div>
 
-      <!-- Loading Screen -->
-  <div id="loadingScreen" class="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 hidden">
-    <div class="text-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid mx-auto mb-4"></div>
-      <p class="text-gray-700 text-lg">กำลังโหลดข้อมูล...</p>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 hidden">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid mx-auto mb-4"></div>
+        <p class="text-gray-700 text-lg">กำลังโหลดข้อมูล...</p>
+      </div>
     </div>
-  </div>
 
     <!-- คำอธิบายสัญลักษณ์ Status -->
     <div class="bg-gray-50 rounded p-2 mb-3 border-l-4 border-blue-400">
@@ -86,7 +85,6 @@
             <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">Battery T</th>
             <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">Battery V</th>
             <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">UPS TEMP</th>
-            
           </tr>
         </thead>
         <tbody id="ups-table">
@@ -97,17 +95,15 @@
   </div>
 
 <script>
-  let fullData = [];
-  let currentRegion = '';
+let fullData = [];
+let currentRegion = '';
 
-  // ดึงค่า parameter จาก URL
-  function getParam(name) {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(name);
-  }
+function getParam(name) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(name);
+}
 
-  // ฟังก์ชันแสดงข้อมูลในตาราง
-  function renderTable(data) {
+function renderTable(data) {
   const table = document.getElementById("ups-table");
   table.innerHTML = "";
 
@@ -118,34 +114,69 @@
     return;
   }
 
-   data.forEach(item => {
-    // กำหนดสีตาม event / status
-    const statusTextMap = {
-      '✅': 'Normal',
-      '⚠️': 'Minor', 
-      '🔴': 'Major',
-      '❌': 'Comm Error',
-      '❓': 'Unknown'
+  // เรียงข้อมูลตามความรุนแรงของสถานะ
+  const sortedData = [...data].sort((a, b) => {
+    const getSeverity = (status) => {
+      switch(status) {
+        case '000': return 4; // Comm Error - รุนแรงที่สุด
+        case '010': return 3; // Major
+        case '001': return 2; // Minor
+        case '011': return 1; // Normal
+        default: return 0;    // Unknown
+      }
     };
+    return getSeverity(b.status_id) - getSeverity(a.status_id);
+  });
 
-    const statusMeaning = statusTextMap[item.status] || 'Unknown';
+  sortedData.forEach(item => {
+    // กำหนดสถานะและการแสดงผลตามระดับความรุนแรง
+    let statusInfo;
     
-    // แปลงเป็นสัญลักษณ์ที่ชัดเจนกว่า
-    const statusSymbol = statusMeaning === 'Normal' ? '🟢' :
-                         statusMeaning === 'Minor' ? '🟡' :
-                         statusMeaning === 'Major' ? '🟠' :
-                         statusMeaning === 'Comm Error' ? '❌' : '?';
+    switch(item.status_id) {
+      case '011':
+        statusInfo = {
+          meaning: 'Normal',
+          symbol: '🟢',
+          class: 'text-green-600 font-bold text-lg'
+        };
+        break;
+      case '001':
+        statusInfo = {
+          meaning: 'Minor',
+          symbol: '🟡',
+          class: 'text-yellow-600 font-bold text-lg'
+        };
+        break;
+      case '010':
+        statusInfo = {
+          meaning: 'Major',
+          symbol: '🟠',
+          class: 'text-orange-600 font-bold text-lg'
+        };
+        break;
+      case '000':
+        statusInfo = {
+          meaning: 'Comm Error',
+          symbol: '❌',
+          class: 'text-red-600 font-bold text-lg'
+        };
+        break;
+      default:
+        statusInfo = {
+          meaning: 'Unknown',
+          symbol: '❓',
+          class: 'text-gray-600 font-bold text-lg'
+        };
+    }
 
-    const statusClass = statusMeaning === 'Normal' ? 'text-green-600 font-bold text-lg' :
-                        statusMeaning === 'Minor' ? 'text-yellow-600 font-bold text-lg' :
-                        statusMeaning === 'Major' ? 'text-orange-600 font-bold text-lg' :
-                        statusMeaning === 'Comm Error' ? 'text-red-600 font-bold text-lg' :
-                        'text-gray-600 font-bold text-lg';
-
+    // สร้างคำอธิบายสำหรับ tooltip
+    const eventDetail = item.event_description ? `\n${item.event_description}` : '';
+    const tooltipText = `${statusInfo.meaning} - ${item.event_name || 'Unknown'}${eventDetail}`;
+    
     const row = document.createElement("tr");
     row.className = "hover:bg-gray-50";
     row.innerHTML = `
-      <td class="border px-1 sm:px-2 py-1 sm:py-2 text-center ${statusMeaning === 'Comm Error' ? 'font-bold text-lg' : statusClass}" title="${statusMeaning}" ${statusMeaning === 'Comm Error' ? 'style="color: #ff0000 !important;"' : ''}>${statusSymbol}</td>
+      <td class="border px-1 sm:px-2 py-1 sm:py-2 text-center ${statusInfo.class}" title="${tooltipText}">${statusInfo.symbol}</td>
       <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm">${item.region_name}</td>
       <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm">${item.subregion_name}</td>
       <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm">${item.pea_code_name}</td>
@@ -155,7 +186,15 @@
         </a>
       </td>
       <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm whitespace-nowrap">${item.last_signal_updated ?? '-'}</td>
-      <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm">${item.event ?? '-'}</td>
+      <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm group relative">
+        <div class="hover:cursor-help" title="${tooltipText}">
+          ${item.event_name || 'Unknown'}
+          ${item.event_description ? `
+          <div class="opacity-0 bg-black text-white text-xs rounded-lg py-2 px-3 absolute z-10 group-hover:opacity-100 bottom-full left-0 mb-2 pointer-events-none whitespace-normal max-w-xs">
+            ${item.event_description}
+          </div>` : ''}
+        </div>
+      </td>
       <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm">${item.input_voltage ?? '-'}</td>
       <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm">${item.output_voltage ?? '-'}</td>
       <td class="border px-1 sm:px-2 py-1 sm:py-2 text-xs sm:text-sm">${item.batt_temp ?? '-'}</td>
@@ -166,31 +205,31 @@
   });
 }
 
-// ฟังก์ชันกรองข้อมูลจาก filter และ search
 function applyFilters() {
   const search = document.getElementById("searchInput").value.toLowerCase();
   const subregion = document.getElementById("subregionFilter").value;
   const statusFilter = document.getElementById("statusFilter").value;
 
   const filtered = fullData.filter(item => {
-    const statusTextMap = {
-      '✅': 'Normal',
-      '⚠️': 'Minor',
-      '🔴': 'Major', 
-      '❌': 'Comm Error',
-      '❓': 'Unknown'
-    };
-    const statusMeaning = statusTextMap[item.status] || 'Unknown';
-
     const matchRegion = currentRegion === '' || item.region_name === currentRegion;
     const matchSubregion = subregion === '' || item.subregion_name === subregion;
-    const matchStatus = statusFilter === '' || statusMeaning === statusFilter;
+    
+    let itemStatusMeaning;
+    switch(item.status_id) {
+      case '011': itemStatusMeaning = 'Normal'; break;
+      case '001': itemStatusMeaning = 'Minor'; break;
+      case '010': itemStatusMeaning = 'Major'; break;
+      case '000': itemStatusMeaning = 'Comm Error'; break;
+      default: itemStatusMeaning = 'Unknown';
+    }
+    const matchStatus = statusFilter === '' || itemStatusMeaning === statusFilter;
 
     const matchSearch =
       item.ups_id.toLowerCase().includes(search) ||
       item.subregion_name.toLowerCase().includes(search) ||
       item.pea_code_name.toLowerCase().includes(search) ||
-      item.region_name.toLowerCase().includes(search);
+      item.region_name.toLowerCase().includes(search) ||
+      (item.event_name && item.event_name.toLowerCase().includes(search));
 
     return matchRegion && matchSubregion && matchStatus && matchSearch;
   });
@@ -204,26 +243,13 @@ function applyFilters() {
   }
 }
 
-
-  // ฟังก์ชันตั้งค่าและกรองข้อมูลเมื่อคลิกปุ่ม Region
-  function setRegionFilter(region) {
+function setRegionFilter(region) {
   currentRegion = region;
 
-  // ล้าง pea_code_id ออกจาก URL (เผื่อกดมาจาก sidebar)
+  // ล้าง pea_code_id ออกจาก URL
   const url = new URL(window.location);
   url.searchParams.delete('pea_code_id');
   window.history.replaceState({}, '', url);
-
-  // โหลดข้อมูลใหม่ทั้งหมดจาก data.php (ไม่กรอง pea_code_id)
-  fetch('data.php')
-    .then(response => response.json())
-    .then(data => {
-      fullData = data;
-      applyFilters(); // ใช้ข้อมูลใหม่ แล้วกรองด้วย region
-    })
-    .catch(error => {
-      console.error("เกิดข้อผิดพลาดในการโหลดข้อมูล:", error);
-    });
 
   // อัปเดตปุ่ม region ที่ถูกเลือก
   document.querySelectorAll('.region-btn').forEach(btn => {
@@ -233,39 +259,39 @@ function applyFilters() {
       btn.classList.remove('bg-blue-700', 'ring', 'ring-blue-300', 'font-bold');
     }
   });
+
   updateSubregionDropdown();
+  applyFilters();
 }
 
+function updateSubregionDropdown() {
+  const subregionSelect = document.getElementById("subregionFilter");
+  subregionSelect.innerHTML = '<option value="">-- Province --</option>';
 
-  // อัปเดต dropdown จังหวัด ตาม region ที่เลือก
-  function updateSubregionDropdown() {
-    const subregionSelect = document.getElementById("subregionFilter");
-    subregionSelect.innerHTML = '<option value="">-- Province --</option>';
+  let subregionsSet = new Set();
+  fullData.forEach(item => {
+    if (currentRegion === '' || item.region_name === currentRegion) {
+      if (item.subregion_name) subregionsSet.add(item.subregion_name);
+    }
+  });
 
-    let subregionsSet = new Set();
-    fullData.forEach(item => {
-      if (currentRegion === '' || item.region_name === currentRegion) {
-        if (item.subregion_name) subregionsSet.add(item.subregion_name);
-      }
-    });
+  [...subregionsSet].sort().forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    subregionSelect.appendChild(opt);
+  });
 
-    [...subregionsSet].sort().forEach(name => {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      subregionSelect.appendChild(opt);
-    });
+  subregionSelect.value = '';
+}
 
-    subregionSelect.value = '';
-  }
-
-  function clearFiltersAndReload() {
+function clearFiltersAndReload() {
   // ลบ pea_code_id ออกจาก URL
   const url = new URL(window.location);
   url.searchParams.delete('pea_code_id');
   window.history.replaceState({}, '', url);
 
-  // โหลดข้อมูลใหม่ทั้งหมด
+  // เคลียร์ค่าต่างๆ
   currentRegion = '';
   document.getElementById("subregionFilter").value = '';
   document.getElementById("statusFilter").value = '';
@@ -280,95 +306,85 @@ function applyFilters() {
     }
   });
 
-  // โหลดข้อมูลใหม่ทั้งหมด
+  // โหลดข้อมูลใหม่
   loadData();
 }
 
 function showLoading() {
-  console.log("🔵 Show Loading");
   document.getElementById("loadingScreen").classList.remove("hidden");
 }
 
 function hideLoading() {
-  console.log("⚪ Hide Loading");
   document.getElementById("loadingScreen").classList.add("hidden");
 }
 
+function loadData() {
+  showLoading();
+  const peaCodeId = getParam('pea_code_id');
+  let url = 'data.php';
+  if (peaCodeId) {
+    url += '?pea_code_id=' + encodeURIComponent(peaCodeId);
+  }
 
-function fetchData() {
-  showLoading(); // 👈 เริ่มโหลด
-
-  fetch("data.php")
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  fetch(url)
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
-      return response.json();
+      return res.json();
     })
     .then(data => {
       console.log('Data received:', data);
-      fullData = data;
-      applyFilters();
-    })
-    .catch(error => {
-      console.error("เกิดข้อผิดพลาดในการโหลดข้อมูล:", error);
-      document.getElementById('ups-table').innerHTML = `<tr><td colspan="12" class="text-center text-red-500 py-4">Error: ${error.message}</td></tr>`;
-    })
-    .finally(() => {
-      hideLoading(); // 👈 โหลดเสร็จ
-    });
-}
-
-  // โหลดข้อมูลจาก PHP พร้อมรองรับ pea_code_id ใน URL
-  function loadData() {
-    showLoading();
-    const peaCodeId = getParam('pea_code_id');
-    let url = 'data.php';
-    if (peaCodeId) {
-      url += '?pea_code_id=' + encodeURIComponent(peaCodeId);
-    }
-
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
+      if (Array.isArray(data)) {
         fullData = data;
+        console.log(`โหลดข้อมูลสำเร็จ: ${data.length} รายการ`);
 
-        // ถ้ามี pea_code_id ให้ตั้ง currentRegion และ subregion ตามข้อมูลชุดแรก
-        if (fullData.length > 0 && peaCodeId) {
-          currentRegion = fullData[0].region_name || '';
-          updateSubregionDropdown();
-
-          document.getElementById('subregionFilter').value = fullData[0].subregion_name || '';
+        if (data.length > 0 && peaCodeId) {
+          currentRegion = data[0].region_name || '';
+          document.getElementById('subregionFilter').value = data[0].subregion_name || '';
           
-          // ไฮไลต์ปุ่ม region ที่ตรงกับ currentRegion
+          // ไฮไลต์ปุ่ม region
           document.querySelectorAll('.region-btn').forEach(btn => {
             if (btn.textContent === currentRegion) {
-              btn.classList.add('bg-blue-700');
+              btn.classList.add('bg-blue-700', 'ring', 'ring-blue-300', 'font-bold');
             } else {
-              btn.classList.remove('bg-blue-700');
+              btn.classList.remove('bg-blue-700', 'ring', 'ring-blue-300', 'font-bold');
             }
           });
         } else {
           currentRegion = '';
-          updateSubregionDropdown();
         }
 
+        updateSubregionDropdown();
         applyFilters();
-      })
-      .catch(err => console.error('โหลดข้อมูลผิดพลาด:', err))
-      .finally(() => {
-      hideLoading(); // 👈 ซ่อนหลังเสร็จ
-      });
-  }
+      } else {
+        throw new Error('ข้อมูลที่ได้รับไม่ถูกต้อง');
+      }
+    })
+    .catch(error => {
+      console.error('โหลดข้อมูลผิดพลาด:', error);
+      document.getElementById('ups-table').innerHTML = `
+        <tr>
+          <td colspan="12" class="text-center py-6">
+            <div class="text-red-500 mb-2">${error.message}</div>
+            <button onclick="loadData()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+              ลองใหม่อีกครั้ง
+            </button>
+          </td>
+        </tr>`;
+    })
+    .finally(() => {
+      hideLoading();
+    });
+}
 
-  // Event listeners สำหรับฟิลเตอร์และค้นหา
-  document.getElementById("searchInput").addEventListener("input", applyFilters);
-  document.getElementById("subregionFilter").addEventListener("change", applyFilters);
-  document.getElementById("statusFilter").addEventListener("change", applyFilters);
+// Event listeners
+document.getElementById("searchInput").addEventListener("input", applyFilters);
+document.getElementById("subregionFilter").addEventListener("change", applyFilters);
+document.getElementById("statusFilter").addEventListener("change", applyFilters);
 
-  // เริ่มโหลดข้อมูลเมื่อเปิดหน้า
-  loadData();
-
+// เริ่มโหลดข้อมูลเมื่อเปิดหน้า
+loadData();
 </script>
 </body>
 </html>
