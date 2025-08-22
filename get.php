@@ -1,53 +1,35 @@
 <?php
-$tablename = "";
-$PEAcode = "PEA";
+declare(strict_types=1);
 
-$NormalID = 0;
-$CommErrID = 2;
-$HighAmbientID = 3;
-$UpsCommErrID = 5;
-$UpsUtilityFailID = 6;
-$UpsLowBattID = 7;
-$UpsFailID = 8;
-$UpsShutdownID = 9;
-$UpsHighLoadID = 10;
-$UpsHighTempID = 11;
-$LbmCommErrID = 13;
-$LbmHighTempID = 14;
-$LbmSupplyFailID = 15;
+// Configuration values
+$HighAmbient = 45;  // Temperature threshold for ambient temperature
+$UpsHighLoad = 85;  // Percentage threshold for UPS load
+$UpsHighTemp = 50;  // Temperature threshold for UPS
 
-$NormalSERV = "Normal";
-$CommErrSERV = "Comm Error";
-$HighAmbientSERV = "Minor";
-$UpsCommErrSERV = "Comm Error";
-$UpsUtilityFailSERV = "Major";
-$UpsLowBattSERV = "Minor";
-$UpsFailSERV = "Minor";
-$UpsShutdownSERV = "Minor";
-$UpsHighLoadSERV = "Minor";
-$UpsHighTempSERV = "Minor";
-$LbmCommErrSERV = "Comm Error";
-$LbmHighTempSERV = "Minor";
-$LbmSupplyFailSERV = "Minor";
+// Initialize calculation variables
+$SUMdata = 0;
+$AVGdata = 0;
 
-$HighAmbient = 45;
-$UpsHighLoad = 85;
-$UpsHighTemp = 50;
-
-$SUMdata = 0 ;
-$AVGdata = 0 ; 
-
+// Set timezone
 date_default_timezone_set("Asia/Bangkok");
 
-function dbg($label, $val="") {
+/**
+ * Debug logging function
+ * @param string $label Log entry label
+ * @param string $val Optional value to log
+ */
+function dbg(string $label, string $val = ""): void {
     $log_filename = 'get_php_log.txt';
-    $entry = "[".date('Y-m-d H:i:s')."] $label";
-    if ($val !== "") $entry .= " | $val";
+    $entry = "[" . date('Y-m-d H:i:s') . "] " . $label;
+    if ($val !== "") {
+        $entry .= " | " . $val;
+    }
     $entry .= "\n";
     file_put_contents($log_filename, $entry, FILE_APPEND);
 }
 
-if((isset($_GET['submit']))&&(isset($_GET['id']))&&(isset($_GET['data']))) { 
+// Check required parameters
+if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
     dbg("START get.php", "URI=".$_SERVER['REQUEST_URI']." | METHOD=".$_SERVER['REQUEST_METHOD']);
     echo "ACK";
     $date=date('Y-m-d H:i:s');
@@ -85,28 +67,28 @@ if((isset($_GET['submit']))&&(isset($_GET['id']))&&(isset($_GET['data']))) {
         $commLBM = 0;
     }
 
-    require "db_config.php";
-    if ($conn) {
-        $link = $conn;
-        $SN_safe = mysqli_real_escape_string($link, $SN);
-
+    try {
+        require "db_config.php";
+        
         dbg("Connected to database successfully");
 
         // ========== หา ups_id จาก ups_devices ==========
-        $sql = "SELECT ups_id FROM ups_devices WHERE NBserial='$SN_safe'";
-        dbg("Query ups_devices by NBserial", $sql);
+        $stmt = $conn->prepare("SELECT ups_id FROM ups_devices WHERE NBserial = ?");
+        $stmt->bind_param("s", $SN);
+        
+        dbg("Query ups_devices by NBserial", "NBserial=" . $SN);
+        
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
         $ups_id = "";
-        if($result = mysqli_query($link, $sql)){
-            if($row = mysqli_fetch_assoc($result)){
-                $ups_id = $row['ups_id'];
-                dbg("Fetched ups_id from ups_devices", $ups_id);
-            } else {
-                dbg("No matching NBserial in ups_devices", $SN_safe);
-            }
-            mysqli_free_result($result);
+        if ($row = $result->fetch_assoc()) {
+            $ups_id = $row['ups_id'];
+            dbg("Fetched ups_id from ups_devices", $ups_id);
         } else {
-            dbg("Query error ups_devices", mysqli_error($link));
+            dbg("No matching NBserial in ups_devices", $SN);
         }
+        $stmt->close();
 
         // ========== ตรวจสอบ ups_id ==========
         if($ups_id == ""){
@@ -115,72 +97,90 @@ if((isset($_GET['submit']))&&(isset($_GET['id']))&&(isset($_GET['data']))) {
             exit;
         }
 
-        // ========== INSERT ข้อมูลลง ups_data ==========
-        $sql = "INSERT INTO ups_data (
-            `ups_id`, 
-            `signal`, 
-            `env_temp`,
-            `RH`, 
-            `last_signal_updated`,
-            `input_voltage`,
-            `input_freq_hz`,
-            `input_fault_v`,
-            `output_i_percent`,
-            `output_voltage`,
-            `ups_temp`,
-            `batt_temp`,
-            `batt_1`,
-            `batt_2`,
-            `batt_3`,
-            `batt_4`,
-            `batt_5`,
-            `batt_6`,
-            `batt_v_per_cell`,
-            `LBM_ampTemp`,
-            `avg_voltage`,
-            `sum_batt`,
-            `current_voltage`,
-            `LBM_status`,
-            `event_id`
-        ) VALUES (
-            '$ups_id',
-            '$rssi',
-            '$temp',
-            '$humid',
-            '$date',
-            ".($commUPS ? "'".$dataUPS[0]."'" : "NULL").",
-            ".($commUPS ? "'".$dataUPS[1]."'" : "NULL").",
-            ".($commUPS ? "'".$dataUPS[2]."'" : "NULL").",
-            ".($commUPS ? "'".$dataUPS[3]."'" : "NULL").",
-            ".($commUPS ? "'".$dataUPS[4]."'" : "NULL").",
-            ".($commUPS ? "'".$dataUPS[6]."'" : "NULL").",
-            ".($commLBM ? "'".$dataLBM[0]."'" : "NULL").",
-            ".($commLBM ? "'".$dataLBM[1]."'" : "NULL").",
-            ".($commLBM ? "'".$dataLBM[2]."'" : "NULL").",
-            ".($commLBM ? "'".$dataLBM[3]."'" : "NULL").",
-            ".($commLBM ? "'".$dataLBM[4]."'" : "NULL").",
-            ".($commLBM ? "'".$dataLBM[5]."'" : "NULL").",
-            ".($commLBM ? "'".$dataLBM[6]."'" : "NULL").",
-            ".($commLBM ? "'".$dataLBM[7]."'" : "NULL").",
-            ".($commLBM ? "'".$dataLBM[8]."'" : "NULL").",
-            '$AVGdata',
-            '$SUMdata',
-            ".($commLBM ? "'".$dataLBM[9]."'" : "NULL").",
-            ".($commLBM ? "'".$dataLBM[0]."'" : "NULL").",
-            '1'
-        )";
-
-        if(mysqli_query($link, $sql)) {
-            if(mysqli_affected_rows($link)>0){
-                dbg("Data inserted successfully");
+                // คำนวณสถานะย่อยของแต่ละระบบ (000/001/010/011)
+        $nb_status = ($rssi != "" && $temp != "" && $humid != "") ? "011" : "000"; // Normal if all values present
+        
+        $ups_status = "000"; // Default to Comm Error
+        if ($commUPS) {
+            if ($dataUPS[0] != "" && $dataUPS[4] != "") {
+                $ups_status = "011"; // Normal if has input and output voltage
+                
+                // Check for UPS issues
+                if (floatval($dataUPS[3]) > $UpsHighLoad) $ups_status = "001"; // High Load
+                if (floatval($dataUPS[6]) > $UpsHighTemp) $ups_status = "001"; // High Temperature
+                if (floatval($dataUPS[0]) < 180) $ups_status = "010"; // Input Voltage Low
             } else {
-                dbg("Insert executed", "No rows affected");
+                $ups_status = "001"; // Minor if connected but missing data
             }
-        } else {
-            dbg("Insert Error", mysqli_error($link)." | SQL=".$sql);
+        }
+        
+        $lbm_status = "000"; // Default to Comm Error
+        if ($commLBM) {
+            if ($dataLBM[0] != "" && $SUMdata > 0) {
+                $lbm_status = "011"; // Normal if has temperature and battery voltage
+                
+                // Check for LBM issues
+                if (floatval($dataLBM[0]) > $UpsHighTemp) $lbm_status = "001"; // High Temperature
+                if ($SUMdata < 180) $lbm_status = "001"; // Low Battery Voltage
+            } else {
+                $lbm_status = "001"; // Minor if connected but missing data
+            }
         }
 
-        mysqli_close($link);
+        dbg("Status Calculation", "NB:$nb_status UPS:$ups_status LBM:$lbm_status");
+
+        // ========== INSERT ข้อมูลลง ups_data ==========
+        $stmt = $conn->prepare("INSERT INTO ups_data (
+            `ups_id`, `signal`, `env_temp`, `RH`, `last_signal_updated`,
+            `input_voltage`, `input_freq_hz`, `input_fault_v`, `output_i_percent`, `output_voltage`,
+            `ups_temp`, `batt_temp`, `batt_1`, `batt_2`, `batt_3`, `batt_4`, `batt_5`, `batt_6`,
+            `batt_v_per_cell`, `LBM_ampTemp`, `avg_voltage`, `sum_batt`, `current_voltage`,
+            `LBM_status`, `nb_status_id`, `ups_status_id`, `lbm_status_id`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        // สร้างตัวแปรเพื่อเก็บค่าที่จะใส่ใน prepared statement
+        $input_voltage = $commUPS ? $dataUPS[0] : null;
+        $input_freq = $commUPS ? $dataUPS[1] : null;
+        $input_fault = $commUPS ? $dataUPS[2] : null;
+        $output_percent = $commUPS ? $dataUPS[3] : null;
+        $output_voltage = $commUPS ? $dataUPS[4] : null;
+        $ups_temperature = $commUPS ? $dataUPS[6] : null;
+        
+        $batt_temperature = $commLBM ? $dataLBM[0] : null;
+        $batt1 = $commLBM ? $dataLBM[1] : null;
+        $batt2 = $commLBM ? $dataLBM[2] : null;
+        $batt3 = $commLBM ? $dataLBM[3] : null;
+        $batt4 = $commLBM ? $dataLBM[4] : null;
+        $batt5 = $commLBM ? $dataLBM[5] : null;
+        $batt6 = $commLBM ? $dataLBM[6] : null;
+        $batt_vcell = $commLBM ? $dataLBM[7] : null;
+        $lbm_temp = $commLBM ? $dataLBM[8] : null;
+        $current_v = $commLBM ? $dataLBM[9] : null;
+        $lbm_status = $commLBM ? $dataLBM[0] : null;
+
+        $stmt->bind_param("sssssssssssssssssssssssssss",
+            $ups_id, $rssi, $temp, $humid, $date,
+            $input_voltage, $input_freq, $input_fault, $output_percent, $output_voltage,
+            $ups_temperature, $batt_temperature, 
+            $batt1, $batt2, $batt3, $batt4, $batt5, $batt6,
+            $batt_vcell, $lbm_temp, $AVGdata, $SUMdata, $current_v,
+            $lbm_status, $nb_status, $ups_status, $lbm_status
+        );
+
+        if ($stmt->execute()) {
+            dbg("Data inserted successfully");
+        } else {
+            dbg("Insert Error", $stmt->error);
+        }
+        
+        $stmt->close();
+    } catch (Exception $e) {
+        dbg("Error", $e->getMessage());
+        echo "ACKERR: " . $e->getMessage();
+    } finally {
+        if (isset($conn)) {
+            $conn->close();
+        }
     }
 }
 ?>

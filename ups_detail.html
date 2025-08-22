@@ -405,22 +405,59 @@
       document.getElementById('loading-screen').classList.add('hidden');
     }
 
+    // Show error message in a nice format
+    function showError(message, type = 'error') {
+      const alertClass = type === 'error' ? 'bg-red-100 text-red-800 border-red-300' : 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      const icon = type === 'error' ? '⚠️' : '⚠️';
+      
+      const errorHtml = `
+        <div class="rounded-lg ${alertClass} p-4 mb-4 flex items-start">
+          <div class="flex-shrink-0">
+            <span class="text-2xl">${icon}</span>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-lg font-medium">เกิดข้อผิดพลาด</h3>
+            <div class="mt-2 text-sm">
+              ${message}
+            </div>
+            <div class="mt-4">
+              <button type="button" 
+                      onclick="loadDashboardData()"
+                      class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                ลองใหม่อีกครั้ง
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('dashboard-content').innerHTML = errorHtml;
+    }
+
     async function loadDashboardData() {
       showLoading();
       const urlParams = new URLSearchParams(window.location.search);
       const upsId = urlParams.get('ups_id');
       
       if (!upsId) {
-        document.getElementById('dashboard-content').innerHTML = '<p class="text-center text-red-500">ไม่พบข้อมูล UPS ID</p>';
+        showError('กรุณาระบุ UPS ID ในพารามิเตอร์ URL (ups_id)');
         hideLoading();
         return;
       }
 
       try {
         const response = await fetch(`ups_detail.php?ups_id=${encodeURIComponent(upsId)}`);
+        
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || `HTTP Error: ${response.status} ${response.statusText}`);
+        }
+        
         const data = await response.json();
-
-        if (!response.ok) throw new Error(data.error || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+        
+        if (data.error) {
+          throw new Error(data.error);
+        }
 
         // อัปเดตข้อมูลแสดงผล
         document.getElementById('site-name').textContent = data.pea_code_name || '-';
@@ -429,15 +466,29 @@
         document.getElementById('status').textContent = data.event || '-';
         document.getElementById('status').className = 'font-bold ' + (data.status === 'normal' ? 'text-green-500' : 'text-red-500');
 
-        document.getElementById('grid-line').textContent = `${data.input_voltage ?? '-'} V`;
-        document.getElementById('input-voltage').textContent = `Input: ${data.input_voltage ?? '-'} V`;
-        document.getElementById('load-percentage').textContent = `${data.load_percentage ?? '-'} %`;
-        document.getElementById('output-voltage').textContent = `Output: ${data.output_voltage ?? '-'} V`;
-        document.getElementById('environment-temp').textContent = `${data.environment_humidity ?? '-'}°C`;
-        document.getElementById('environment-humidity').textContent = `Humidity: ${data.environment_humidity ?? '-'}°C`;
-        document.getElementById('current').textContent = data.current ?? '-';
-        document.getElementById('batt-temp').textContent = data.battery_temp ?? '-';
-        document.getElementById('total-voltage').textContent = data.battery_voltage ?? '-';
+        // Check if we have the required data
+        if (!data || typeof data !== 'object') {
+          throw new Error('ข้อมูลที่ได้รับไม่ถูกต้อง');
+        }
+
+        // Update UI safely with null checks
+        const updateElement = (id, value, suffix = '') => {
+          const element = document.getElementById(id);
+          if (element) {
+            element.textContent = value ? `${value}${suffix}` : '-';
+          }
+        };
+
+        // Update basic info
+        updateElement('grid-line', data.input_voltage, ' V');
+        updateElement('input-voltage', data.input_voltage, ' V');
+        updateElement('load-percentage', data.load_percentage, ' %');
+        updateElement('output-voltage', data.output_voltage, ' V');
+        updateElement('environment-temp', data.environment_humidity, '°C');
+        updateElement('environment-humidity', data.environment_humidity, '°C');
+        updateElement('current', data.current);
+        updateElement('batt-temp', data.battery_temp);
+        updateElement('total-voltage', data.battery_voltage);
 
         // อัปเดตแถบกราฟ
         updateProgressBars(data);

@@ -2,12 +2,13 @@
 header('Content-Type: application/json; charset=utf-8');
 
 require_once 'db_config.php';
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT); // เปิด debug
 
-$sql = "
+// ใช้ try-catch แทน mysqli_report เพื่อจัดการ error handling
+try {
+    $sql = "
 SELECT 
     dev.ups_id, 
-    e.event_name as status,
+    se.event_name as status,
     dev.latitude, 
     dev.longitude,
     ud.last_signal_updated,
@@ -26,7 +27,7 @@ LEFT JOIN (
     ) ud2 ON ud1.ups_id = ud2.ups_id AND ud1.last_signal_updated = ud2.max_date
 ) ud ON dev.ups_id = ud.ups_id
 LEFT JOIN 
-    event_detail e ON ud.event_id = e.event_id
+    status_events se ON ud.status_id = se.status_id
 WHERE 
     dev.latitude IS NOT NULL AND dev.longitude IS NOT NULL
 ";
@@ -63,7 +64,14 @@ while ($row = $result->fetch_assoc()) {
     ];
 }
 
-$data = array_values($locationGroups);
-
-echo json_encode($data, JSON_UNESCAPED_UNICODE);
-$conn->close();
+    $data = array_values($locationGroups);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(["error" => $e->getMessage()]);
+} finally {
+    if (isset($conn)) {
+        $conn->close();
+    }
+}

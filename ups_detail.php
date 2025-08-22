@@ -15,7 +15,6 @@ $sql = "
 SELECT
     dev.ups_id,
     COALESCE(se.event_name, 'Unknown') as status,
-    COALESCE(e.event_name, 'No Data') as event,
     ud.last_signal_updated,
     ud.input_voltage,
     ud.output_voltage,
@@ -28,7 +27,10 @@ SELECT
     ud.current_voltage,
     ud.output_i_percent as load_percentage,
     ud.RH as environment_humidity,
-    p.pea_code_name
+    p.pea_code_name,
+    ud.nb_status_id,
+    ud.ups_status_id,
+    ud.lbm_status_id
 FROM ups_devices dev
 JOIN peacodes p ON dev.pea_code_id = p.pea_code_id
 LEFT JOIN (
@@ -40,8 +42,7 @@ LEFT JOIN (
         GROUP BY ups_id
     ) ud2 ON ud1.ups_id = ud2.ups_id AND ud1.last_signal_updated = ud2.max_date
 ) ud ON dev.ups_id = ud.ups_id
-LEFT JOIN event_detail e ON ud.event_id = e.event_id
-LEFT JOIN status_events se ON e.status_id = se.status_id
+LEFT JOIN status_events se ON ud.status_id = se.status_id
 WHERE dev.ups_id = '$ups_id'
 ";
 
