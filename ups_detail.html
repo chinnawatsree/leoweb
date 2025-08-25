@@ -8,94 +8,151 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+      background: linear-gradient(135deg, #EEF2FF 0%, #ffffff 100%);
     }
     .card {
       @apply bg-white p-4 sm:p-6 lg:p-10 rounded-xl sm:rounded-2xl transition-all duration-300;
-      border: 1px solid #f1f5f9;
+      border: 1px solid rgba(99, 102, 241, 0.1);
       min-height: 120px;
       backdrop-filter: blur(10px);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.05);
+      box-shadow: 
+        0 4px 20px rgba(99, 102, 241, 0.05),
+        0 1px 3px rgba(99, 102, 241, 0.1),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+      background: linear-gradient(to right bottom, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6));
     }
     .card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.08);
-      border-color: #e2e8f0;
+      box-shadow: 
+        0 8px 30px rgba(99, 102, 241, 0.12),
+        0 2px 6px rgba(99, 102, 241, 0.08),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+      border-color: rgba(99, 102, 241, 0.2);
     }
     .header-card {
-      @apply bg-white p-4 sm:p-6 lg:p-12 rounded-2xl sm:rounded-3xl transition-all duration-300;
-      border: 2px solid #e5e7eb;
+      @apply bg-white p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl transition-all duration-300;
       min-height: 120px;
-      background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+      background: linear-gradient(145deg, #ffffff 0%, #F5F7FF 100%);
+      border: 2px solid transparent;
+      background-clip: padding-box;
+      box-shadow: 
+        0 8px 25px rgba(99, 102, 241, 0.08),
+        0 2px 8px rgba(99, 102, 241, 0.06),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.8);
+      position: relative;
+    }
+    .header-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 2px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(99, 102, 241, 0.1));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
     }
     .header-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 12px 35px rgba(99, 102, 241, 0.12), 0 4px 12px rgba(99, 102, 241, 0.08);
-      border-color: #c7d2fe;
+      box-shadow: 
+        0 12px 35px rgba(99, 102, 241, 0.15),
+        0 4px 12px rgba(99, 102, 241, 0.1),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.9);
     }
     .text-label {
-      @apply text-sm text-gray-600 font-bold tracking-wider uppercase;
+      color: #6366F1;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-transform: uppercase;
       letter-spacing: 0.15em;
+      opacity: 0.8;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
     }
     .text-title {
-      @apply text-2xl font-bold text-indigo-700;
+      color: #4338CA;
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
     }
     .flex-center {
-      @apply flex items-center;
+      display: flex;
+      align-items: center;
     }
     #dashboard-content .card {
-      background: linear-gradient(120deg, #f8fafc 80%, #e0e7ff 100%);
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.95) 80%, rgba(224, 231, 255, 0.9) 100%);
+      border: 1px solid rgba(99, 102, 241, 0.15);
     }
     #dashboard-content .text-4xl {
-      @apply text-5xl text-indigo-600 drop-shadow;
+      font-size: 3rem;
+      color: #4F46E5;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+      font-weight: 700;
     }
     #dashboard-content .text-xl {
-      @apply text-2xl text-indigo-700;
+      font-size: 1.25rem;
+      color: #4338CA;
+      font-weight: 600;
     }
     #dashboard-content .bg-gray-100 {
-      background: linear-gradient(90deg, #f1f5f9 60%, #e0e7ff 100%);
+      background: linear-gradient(90deg, rgba(241, 245, 249, 0.8) 60%, rgba(224, 231, 255, 0.8) 100%);
+      backdrop-filter: blur(8px);
+    }
+    #status {
+      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
+      font-weight: 600;
+      padding: 0.25rem 1rem;
+      border-radius: 9999px;
+      transition: all 0.3s ease;
     }
     #status.text-green-500 {
-      @apply bg-green-100 px-3 py-1 rounded-full;
+      background: rgba(167, 243, 208, 0.5);
+      color: #059669;
+      border: 1px solid rgba(5, 150, 105, 0.2);
     }
     #status.text-red-500 {
-      @apply bg-red-100 px-3 py-1 rounded-full;
+      background: rgba(254, 202, 202, 0.5);
+      color: #DC2626;
+      border: 1px solid rgba(220, 38, 38, 0.2);
     }
     canvas#battery-chart {
-      background: #fff;
+      background: rgba(255, 255, 255, 0.95);
       border-radius: 1rem;
-      box-shadow: 0 2px 8px 0 #e0e7ff;
-      padding: 1rem;
+      box-shadow: 
+        0 4px 20px rgba(99, 102, 241, 0.08),
+        0 2px 8px rgba(99, 102, 241, 0.06),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+      padding: 1.5rem;
+      border: 1px solid rgba(99, 102, 241, 0.15);
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-100 via-blue-50 to-white min-h-screen p-2 sm:p-4 lg:p-6">
+<body style="background: linear-gradient(135deg, #EEF2FF 0%, #ffffff 100%);" class="min-h-screen p-2 sm:p-4 lg:p-6">
   <!-- Loading Screen -->
-  <div id="loading-screen" class="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
-    <div class="text-center">
+  <div id="loading-screen" class="fixed inset-0 backdrop-blur-sm bg-white/80 flex items-center justify-center z-50">
+    <div class="text-center bg-white/90 p-8 rounded-2xl shadow-lg">
       <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-      <p class="text-indigo-600 font-semibold">กำลังโหลดข้อมูล...</p>
+      <p class="text-indigo-600 font-semibold text-lg">กำลังโหลดข้อมูล...</p>
     </div>
   </div>
 
   <div class="max-w-7xl mx-auto">
     <header class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-      <div class="header-card flex flex-col items-center justify-center text-center">
-        <span class="text-label mb-1">PEA site name</span>
-        <span id="site-name" class="text-lg sm:text-2xl lg:text-3xl font-black text-indigo-700 break-words">-</span>
+      <div class="header-card flex flex-col items-center justify-center text-center p-4">
+        <span class="text-label mb-2">PEA site name</span>
+        <span id="site-name" class="text-base sm:text-xl lg:text-2xl font-bold text-indigo-700 break-words max-w-[250px] leading-tight">-</span>
       </div>
-      <div class="header-card flex flex-col items-center justify-center text-center">
-        <span class="text-label mb-1">UPS ID</span>
-        <span id="ups-id" class="text-lg sm:text-2xl lg:text-3xl font-black text-indigo-700">-</span>
+      <div class="header-card flex flex-col items-center justify-center text-center p-4">
+        <span class="text-label mb-2">UPS ID</span>
+        <span id="ups-id" class="text-base sm:text-xl lg:text-2xl font-bold text-indigo-700">-</span>
       </div>
-      <div class="header-card flex flex-col items-center justify-center text-center">
-        <span class="text-label mb-1">Last updated</span>
-        <span id="last-updated" class="text-sm sm:text-base lg:text-lg font-black text-gray-700 text-center">-</span>
+      <div class="header-card flex flex-col items-center justify-center text-center p-4">
+        <span class="text-label mb-2">Last updated</span>
+        <span id="last-updated" class="text-sm sm:text-base lg:text-lg font-semibold text-gray-700 text-center">-</span>
       </div>
-      <div class="header-card flex flex-col items-center justify-center text-center">
-        <span class="text-label mb-1">Event</span>
-        <span id="status" class="text-base sm:text-lg lg:text-xl font-black px-3 py-1 rounded-full transition-colors duration-200">-</span>
+      <div class="header-card flex flex-col items-center justify-center text-center p-4">
+        <span class="text-label mb-2">Event</span>
+        <span id="status" class="text-sm sm:text-base lg:text-lg font-semibold px-3 py-1 rounded-full transition-colors duration-200">-</span>
       </div>
     </header>
 
@@ -460,7 +517,7 @@
         }
 
         // อัปเดตข้อมูลแสดงผล
-        document.getElementById('site-name').textContent = data.pea_code_name || '-';
+        document.getElementById('site-name').textContent = data.pea_web_name_th || data.pea_code_name || '-';
         document.getElementById('ups-id').textContent = data.ups_id || '-';
         document.getElementById('last-updated').textContent = data.last_signal_updated ?? '-';
         document.getElementById('status').textContent = data.event || '-';

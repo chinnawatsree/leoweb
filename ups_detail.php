@@ -60,12 +60,15 @@ SELECT
     ud.current_voltage,
     ud.output_i_percent as load_percentage,
     ud.RH as environment_humidity,
+    p.pea_code_id,
     p.pea_code_name,
+    pw.pea_web_name_th,
     ud.nb_status_id,
     ud.ups_status_id,
     ud.lbm_status_id
 FROM ups_devices dev
 JOIN peacodes p ON dev.pea_code_id = p.pea_code_id
+LEFT JOIN peawebs pw ON p.pea_code_id = CAST(pw.pea_code_id AS CHAR)
 LEFT JOIN (
     SELECT ud1.*
     FROM ups_data ud1
@@ -100,7 +103,7 @@ if ($result->num_rows > 0) {
         'battery_temp' => $row['battery_temp'] ?? null,
         'battery_voltage' => $row['battery_voltage'] ?? null,
         'ups_temp' => $row['ups_temp'] ?? null,
-        'pea_code_name' => $row['pea_code_name'],
+        'pea_code_name' => $row['pea_web_name_th'] ?? $row['pea_code_name'],
         'current' => $row['current_voltage'] ?? null,
         'load_percentage' => $row['load_percentage'] ?? null,
         'environment_humidity' => $row['environment_humidity'] ?? null,
