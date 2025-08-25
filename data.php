@@ -35,32 +35,38 @@ try {
             ELSE '011'
         END as status_id,
         CASE
-            WHEN ud.ups_status_id = '000' THEN 'UPS comm error'
-            WHEN ud.nb_status_id = '000' THEN 'Site comm error'
-            WHEN ud.lbm_status_id = '000' THEN 'LBM comm error'
-            WHEN ud.ups_status_id = '010' AND ud.ups_temp > 50 THEN 'UPS High Temp'
-            WHEN ud.ups_status_id = '010' AND ud.batt_temp > 65 THEN 'Battery High Temp'
-            WHEN ud.ups_status_id = '001' THEN 'Utility fail'
-            WHEN ud.nb_status_id = '010' THEN 'High ambient temp'
-            WHEN ud.lbm_status_id = '010' THEN 'Battery fail'
-            WHEN ud.ups_status_id = '011' THEN 'UPS normal'
-            WHEN ud.nb_status_id = '011' THEN 'NB IoT Normal'
-            WHEN ud.lbm_status_id = '011' THEN 'LBM normal'
-            ELSE 'Normal'
+            WHEN (
+                ud.ups_status_id = '011' AND 
+                ud.nb_status_id = '011' AND 
+                ud.lbm_status_id = '011'
+            ) THEN 'Normal'
+            ELSE CONCAT_WS(', ',
+                CASE WHEN ud.ups_status_id = '000' THEN 'UPS comm error' END,
+                CASE WHEN ud.nb_status_id = '000' THEN 'Site comm error' END,
+                CASE WHEN ud.lbm_status_id = '000' THEN 'LBM comm error' END,
+                CASE WHEN ud.ups_status_id = '010' AND ud.ups_temp > 50 THEN 'UPS High Temp' END,
+                CASE WHEN ud.ups_status_id = '010' AND ud.batt_temp > 65 THEN 'Battery High Temp' END,
+                CASE WHEN ud.ups_status_id = '001' THEN 'Utility fail' END,
+                CASE WHEN ud.nb_status_id = '010' THEN 'High ambient temp' END,
+                CASE WHEN ud.lbm_status_id = '010' THEN 'Battery fail' END
+            )
         END as event_name,
         CASE
-            WHEN ud.ups_status_id = '000' THEN 'Cannot communicate with UPS'
-            WHEN ud.nb_status_id = '000' THEN 'Internet connection lost or site cannot send data'
-            WHEN ud.lbm_status_id = '000' THEN 'Cannot communicate with LBM'
-            WHEN ud.ups_status_id = '010' AND ud.ups_temp > 50 THEN 'UPS temperature is too high (>50°C)'
-            WHEN ud.ups_status_id = '010' AND ud.batt_temp > 65 THEN 'Battery temperature is too high (>65°C)'
-            WHEN ud.ups_status_id = '001' THEN 'UPS on battery power'
-            WHEN ud.nb_status_id = '010' THEN 'High ambient temperature (>45°C)'
-            WHEN ud.lbm_status_id = '010' THEN 'Battery system failure'
-            WHEN ud.ups_status_id = '011' THEN 'UPS working normally'
-            WHEN ud.nb_status_id = '011' THEN 'Communication system working normally'
-            WHEN ud.lbm_status_id = '011' THEN 'Battery system working normally'
-            ELSE 'System is working normally'
+            WHEN (
+                ud.ups_status_id = '011' AND 
+                ud.nb_status_id = '011' AND 
+                ud.lbm_status_id = '011'
+            ) THEN 'System is working normally'
+            ELSE CONCAT_WS('; ',
+                CASE WHEN ud.ups_status_id = '000' THEN 'Cannot communicate with UPS' END,
+                CASE WHEN ud.nb_status_id = '000' THEN 'Internet connection lost or site cannot send data' END,
+                CASE WHEN ud.lbm_status_id = '000' THEN 'Cannot communicate with LBM' END,
+                CASE WHEN ud.ups_status_id = '010' AND ud.ups_temp > 50 THEN 'UPS temperature is too high (>50°C)' END,
+                CASE WHEN ud.ups_status_id = '010' AND ud.batt_temp > 65 THEN 'Battery temperature is too high (>65°C)' END,
+                CASE WHEN ud.ups_status_id = '001' THEN 'UPS on battery power' END,
+                CASE WHEN ud.nb_status_id = '010' THEN 'High ambient temperature (>45°C)' END,
+                CASE WHEN ud.lbm_status_id = '010' THEN 'Battery system failure' END
+            )
         END as event_description,
         ud.last_signal_updated,
         ud.input_voltage,

@@ -30,69 +30,124 @@
     </div>
 
     <!-- Filters และ Search -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-      <input id="searchInput" type="text" placeholder="ค้นหา UPS ID, Province, หรือ PEA" class="border rounded px-3 py-2 w-full sm:w-auto sm:flex-1 text-sm sm:text-base min-h-[40px]" />
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+      <div class="sm:col-span-2">
+        <input id="searchInput" type="text" placeholder="🔍 ค้นหา UPS ID, Province, หรือ PEA" 
+          class="w-full px-4 py-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 placeholder-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all duration-200" />
+      </div>
       
-      <select id="subregionFilter" class="border rounded px-3 py-2 w-full sm:w-auto text-sm sm:text-base min-h-[40px]">
-        <option value="">-- Province --</option>
+      <select id="subregionFilter" 
+        class="px-4 py-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all duration-200 cursor-pointer">
+        <option value="">📍 จังหวัด (ทั้งหมด)</option>
       </select>
 
-      <select id="statusFilter" class="border rounded px-3 py-2 w-full sm:w-auto text-sm sm:text-base min-h-[40px]">
-        <option value="">-- Status --</option>
-        <option value="Normal">Normal</option>
-        <option value="Minor">Minor</option>
-        <option value="Major">Major</option>
-        <option value="Comm Error">Comm Error</option>
+      <select id="statusFilter" 
+        class="px-4 py-3 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all duration-200 cursor-pointer">
+        <option value="">🔵 สถานะ (ทั้งหมด)</option>
+        <option value="Normal">🟢 Normal</option>
+        <option value="Minor">🟡 Minor</option>
+        <option value="Major">🟠 Major</option>
+        <option value="Comm Error">❌ Comm Error</option>
       </select>
 
-      <div id="dataCount" class="text-gray-600 font-medium text-sm sm:text-base whitespace-nowrap">
+      <div id="dataCount" class="sm:col-span-4 text-slate-600 font-medium text-sm bg-slate-50 rounded-lg px-4 py-3">
         แสดงทั้งหมด 0 รายการ
       </div>
     </div>
 
     <!-- Loading Screen -->
-    <div id="loadingScreen" class="fixed inset-0 bg-white bg-opacity-80 flex items-center justify-center z-50 hidden">
-      <div class="text-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid mx-auto mb-4"></div>
-        <p class="text-gray-700 text-lg">กำลังโหลดข้อมูล...</p>
+    <div id="loadingScreen" class="fixed inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+      <div class="bg-white/80 p-8 rounded-2xl shadow-lg text-center backdrop-blur-md">
+        <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-400 border-t-transparent mx-auto mb-4"></div>
+        <p class="text-slate-600 text-lg font-medium">กำลังโหลดข้อมูล...</p>
       </div>
     </div>
 
     <!-- คำอธิบายสัญลักษณ์ Status -->
-    <div class="bg-gray-50 rounded p-2 mb-3 border-l-4 border-blue-400">
-      <div class="flex flex-wrap gap-4 text-xs text-gray-600">
-        <span class="flex items-center gap-1"><span class="text-green-600 font-bold text-lg">🟢</span> Normal - ระบบทำงานปกติ</span>
-        <span class="flex items-center gap-1"><span class="text-yellow-600 font-bold text-lg">🟡</span> Minor - มีปัญหาเล็กน้อย</span>
-        <span class="flex items-center gap-1"><span class="text-orange-600 font-bold text-lg">🟠</span> Major - มีปัญหาร้ายแรง</span>
-        <span class="flex items-center gap-1"><span class="text-red-600 font-bold text-lg">❌</span> Comm Error - ขาดการติดต่อ</span>
+    <div class="bg-gradient-to-r from-slate-50 to-blue-50 rounded-xl p-4 mb-6 border border-blue-100">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+        <span class="flex items-center gap-2 text-slate-600">
+          <span class="w-3 h-3 rounded-full bg-green-400 shadow-sm shadow-green-200"></span>
+          <span>Normal - ระบบทำงานปกติ</span>
+        </span>
+        <span class="flex items-ceผnter gap-2 text-slate-600">
+          <span class="w-3 h-3 rounded-full bg-yellow-400 shadow-sm shadow-yellow-200"></span>
+          <span>Minor - มีปัญหาเล็กน้อย</span>
+        </span>
+        <span class="flex items-center gap-2 text-slate-600">
+          <span class="w-3 h-3 rounded-full bg-orange-400 shadow-sm shadow-orange-200"></span>
+          <span>Major - มีปัญหาร้ายแรง</span>
+        </span>
+        <span class="flex items-center gap-2 text-slate-600">
+          <span class="w-3 h-3 rounded-full bg-red-400 shadow-sm shadow-red-200"></span>
+          <span>Comm Error - ขาดการติดต่อ</span>
+        </span>
       </div>
     </div>
 
     <!-- ตารางข้อมูล -->
-    <div class="overflow-x-auto rounded-lg shadow">
-      <table class="min-w-full bg-white border text-xs sm:text-sm leading-relaxed">
-        <thead class="bg-gray-200 text-xs sm:text-sm font-semibold sticky top-0">
-          <tr class="text-left">
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">Status</th>
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">Region</th>
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">Province</th>
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">PEA</th>
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">UPS ID</th>
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">Last Signal</th>
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">Event</th>
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">Input (V)</th>
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">Output (V)</th>
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">Battery T</th>
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">Battery V</th>
-            <th class="py-2 px-1 sm:px-2 border whitespace-nowrap">UPS TEMP</th>
+    <div class="overflow-x-auto rounded-xl shadow-sm border border-slate-200">
+      <table class="min-w-full bg-white text-sm">
+        <thead class="bg-gradient-to-r from-slate-50 to-blue-50 text-slate-600 font-medium sticky top-0">
+          <tr>
+            <th class="py-3 px-4 text-left">Status</th>
+            <th class="py-3 px-4 text-left">Region</th>
+            <th class="py-3 px-4 text-left">Province</th>
+            <th class="py-3 px-4 text-left">PEA</th>
+            <th class="py-3 px-4 text-left">UPS ID</th>
+            <th class="py-3 px-4 text-left">Last Signal</th>
+            <th class="py-3 px-4 text-left">Event</th>
+            <th class="py-3 px-4 text-left">Input (V)</th>
+            <th class="py-3 px-4 text-left">Output (V)</th>
+            <th class="py-3 px-4 text-left">Battery T</th>
+            <th class="py-3 px-4 text-left">Battery V</th>
+            <th class="py-3 px-4 text-left">UPS TEMP</th>
           </tr>
         </thead>
-        <tbody id="ups-table">
+        <tbody id="ups-table" class="divide-y divide-slate-100">
           <!-- รายการจะแสดงที่นี่ -->
         </tbody>
       </table>
     </div>
   </div>
+  
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    /* Smooth transitions */
+    .transition-all {
+      transition-property: all;
+      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      transition-duration: 200ms;
+    }
+    
+    /* Table row hover effect */
+    #ups-table tr:hover {
+      background-color: #f8fafc;
+    }
+    
+    /* Active region button */
+    .region-btn.active {
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      color: white;
+      border-color: #2563eb;
+    }
+  </style>
 
 <script>
 let fullData = [];

@@ -56,15 +56,25 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
 
     if (count($dataLBM) == 10) {
         $sqlLBM = "'".$dataLBM[0]."','".$dataLBM[1]."','".$dataLBM[2]."','".$dataLBM[3]."','".$dataLBM[4]."','".$dataLBM[5]."','".$dataLBM[6]."','".$dataLBM[7]."','".$dataLBM[8]."','".$dataLBM[9]."'";
-        $SUMdata=0;
-        for($i=1;$i<(count($dataLBM)-3);$i++){
-            $SUMdata=$SUMdata+$dataLBM[$i];
+        
+        // คำนวณ sum และ average เฉพาะเมื่อมีค่าแบตเตอรี่ที่ไม่เป็น 0 หรือค่าว่าง
+        $validBatteryValues = array_filter(array_slice($dataLBM, 1, 6), function($value) {
+            return is_numeric($value) && floatval($value) > 0;
+        });
+        
+        if (!empty($validBatteryValues)) {
+            $SUMdata = array_sum($validBatteryValues);
+            $AVGdata = number_format($SUMdata / count($validBatteryValues), 2);
+        } else {
+            $SUMdata = null;
+            $AVGdata = null;
         }
-        $AVGdata=number_format(($SUMdata/(count($dataLBM)-4)),2);
     }
     else {
         $sqlLBM = "'err',null,null,null,null,null,null,null,null,null";
         $commLBM = 0;
+        $SUMdata = null;
+        $AVGdata = null;
     }
 
     try {
@@ -116,20 +126,46 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
         
         $lbm_status = "000"; // Default to Comm Error
         if ($commLBM) {
-            if ($dataLBM[0] != "" && $SUMdata > 0) {
-                $lbm_status = "011"; // Normal if has temperature and battery voltage
+            // ตรวจสอบว่ามีค่าอุณหภูมิและแบตเตอรี่ทุกลูก
+            $allBatteriesValid = true;
+            for ($i = 1; $i <= 6; $i++) {
+                $battVar = "batt" . $i;
+                if (empty($$battVar) || floatval($$battVar) <= 0) {
+                    $allBatteriesValid = false;
+                    break;
+                }
+            }
+
+            if ($dataLBM[0] != "" && $SUMdata > 0 && $allBatteriesValid) {
+                $lbm_status = "011"; // Normal if all conditions are met
                 
                 // Check for LBM issues
-                if (floatval($dataLBM[0]) > $UpsHighTemp) $lbm_status = "001"; // High Temperature
-                if ($SUMdata < 180) $lbm_status = "001"; // Low Battery Voltage
+                if (floatval($dataLBM[0]) > $UpsHighTemp) {
+                    $lbm_status = "001"; // High Temperature
+                }
+                
+                // ตรวจสอบแรงดันแบตเตอรี่แต่ละลูก
+                for ($i = 1; $i <= 6; $i++) {
+                    $battVar = "batt" . $i;
+                    if (floatval($$battVar) < 30) { // ถ้าแรงดันแบตเตอรี่ลูกใดลูกหนึ่งต่ำกว่า 30V
+                        $lbm_status = "001";
+                        break;
+                    }
+                }
+                
+                if ($SUMdata < 180) {
+                    $lbm_status = "001"; // Low Total Battery Voltage
+                }
             } else {
-                $lbm_status = "001"; // Minor if connected but missing data
+                $lbm_status = "001"; // Minor if connected but missing or invalid data
             }
         }
 
         dbg("Status Calculation", "NB:$nb_status UPS:$ups_status LBM:$lbm_status");
 
         // ========== INSERT ข้อมูลลง ups_data ==========
+        dbg("Battery Values", "SUM: " . ($SUMdata ?? 'null') . ", AVG: " . ($AVGdata ?? 'null'));
+        
         $stmt = $conn->prepare("INSERT INTO ups_data (
             `ups_id`, `signal`, `env_temp`, `RH`, `last_signal_updated`,
             `input_voltage`, `input_freq_hz`, `input_fault_v`, `output_i_percent`, `output_voltage`,
@@ -156,7 +192,18 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
         $batt_vcell = $commLBM ? $dataLBM[7] : null;
         $lbm_temp = $commLBM ? $dataLBM[8] : null;
         $current_v = $commLBM ? $dataLBM[9] : null;
-        $lbm_status = $commLBM ? $dataLBM[0] : null;
+        
+        // กำหนดค่า LBM_status ตามเงื่อนไข
+        if ($commLBM) {
+            $lbm_temp_status = '00000000';  // เชื่อมต่อได้ปกติ
+        } elseif ($dataLBM[0] === '' || $dataLBM[0] === null) {
+            $lbm_temp_status = 'err';  // มีข้อผิดพลาด
+        } else {
+            $lbm_temp_status = $dataLBM[0];  // ค่าอุณหภูมิปกติ
+        }
+
+        // เพิ่ม logging เพื่อตรวจสอบค่าสถานะ
+        dbg("LBM Status Values", "LBM Status ID: $lbm_status, LBM Temp Status: $lbm_temp_status");
 
         $stmt->bind_param("sssssssssssssssssssssssssss",
             $ups_id, $rssi, $temp, $humid, $date,
@@ -164,7 +211,7 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
             $ups_temperature, $batt_temperature, 
             $batt1, $batt2, $batt3, $batt4, $batt5, $batt6,
             $batt_vcell, $lbm_temp, $AVGdata, $SUMdata, $current_v,
-            $lbm_status, $nb_status, $ups_status, $lbm_status
+            $lbm_temp_status, $nb_status, $ups_status, $lbm_status
         );
 
         if ($stmt->execute()) {
