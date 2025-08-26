@@ -170,7 +170,7 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
             `ups_id`, `signal`, `env_temp`, `RH`, `last_signal_updated`,
             `input_voltage`, `input_freq_hz`, `input_fault_v`, `output_i_percent`, `output_voltage`,
             `ups_temp`, `batt_temp`, `batt_1`, `batt_2`, `batt_3`, `batt_4`, `batt_5`, `batt_6`,
-            `batt_v_per_cell`, `LBM_ampTemp`, `avg_voltage`, `sum_batt`, `current_voltage`,
+            `UPS_status`, `LBM_ampTemp`, `avg_voltage`, `sum_batt`, `current_voltage`,
             `LBM_status`, `nb_status_id`, `ups_status_id`, `lbm_status_id`
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
@@ -182,14 +182,14 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
         $output_voltage = $commUPS ? $dataUPS[4] : null;
         $ups_temperature = $commUPS ? $dataUPS[6] : null;
         
-        $batt_temperature = $commLBM ? $dataLBM[0] : null;
+        $ups_status_value = $commLBM ? $dataLBM[0] : null;     // เก็บค่า 00000200 ใน UPS_status
         $batt1 = $commLBM ? $dataLBM[1] : null;
         $batt2 = $commLBM ? $dataLBM[2] : null;
         $batt3 = $commLBM ? $dataLBM[3] : null;
         $batt4 = $commLBM ? $dataLBM[4] : null;
         $batt5 = $commLBM ? $dataLBM[5] : null;
         $batt6 = $commLBM ? $dataLBM[6] : null;
-        $batt_vcell = $commLBM ? $dataLBM[7] : null;
+        $batt_temperature = $commLBM ? '-50.0' : null;      // เก็บค่า -50 ใน batt_temp
         $lbm_temp = $commLBM ? $dataLBM[8] : null;
         $current_v = $commLBM ? $dataLBM[9] : null;
         
@@ -210,7 +210,7 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
             $input_voltage, $input_freq, $input_fault, $output_percent, $output_voltage,
             $ups_temperature, $batt_temperature, 
             $batt1, $batt2, $batt3, $batt4, $batt5, $batt6,
-            $batt_vcell, $lbm_temp, $AVGdata, $SUMdata, $current_v,
+            $ups_status_value, $lbm_temp, $AVGdata, $SUMdata, $current_v,
             $lbm_temp_status, $nb_status, $ups_status, $lbm_status
         );
 
