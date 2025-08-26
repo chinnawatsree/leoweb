@@ -47,15 +47,44 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
     $commUPS = 1;
     $commLBM = 1;
 
-    if (count($dataUPS) == 8)
+    // กำหนดค่าเริ่มต้นสำหรับสถานะ
+    $ups_status_value = 'err';
+    $ups_status = '000';
+    $lbm_temp_status = 'err';
+    $lbm_status = '000';
+
+    if (count($dataUPS) == 8) {
         $sqlUPS = "'".$dataUPS[0]."','".$dataUPS[1]."','".$dataUPS[2]."','".$dataUPS[3]."','".$dataUPS[4]."','".$dataUPS[5]."','".$dataUPS[6]."','".$dataUPS[7]."'";
-    else {
+        // ดึงค่า UPS status ดิบมาเก็บไว้เลย
+        $ups_raw_status = isset($dataUPS[7]) ? $dataUPS[7] : 'err';
+        dbg("UPS Raw Status", "Value from device: " . $ups_raw_status);
+        
+        // คำนวณค่า ups_status สำหรับ status_id
+        if ($dataUPS[0] != "" && $dataUPS[4] != "") {
+            $ups_status = "011";  // Normal if has input and output voltage
+            if (floatval($dataUPS[3]) > $UpsHighLoad || 
+                floatval($dataUPS[6]) > $UpsHighTemp || 
+                floatval($dataUPS[0]) < 180) {
+                $ups_status = "010";  // Major if there are issues
+            }
+        } else {
+            $ups_status = "000";  // Comm Error if missing critical values
+        }
+    } else {
         $sqlUPS = "null,null,null,null,null,null,null,'err'";
+        $ups_status_value = 'err';  // Error indicator for raw status
+        $ups_status = "000";       // Comm Error for status_id
         $commUPS = 0;
     }
 
+    dbg("UPS Status Detail", "Raw status (UPS_status): " . $ups_status_value . ", Calculated status (status_id): " . $ups_status);
+
+    // Log status for debugging
+    dbg("UPS Status", "Raw: $ups_status_value, Calculated: $ups_status");
+
     if (count($dataLBM) == 10) {
         $sqlLBM = "'".$dataLBM[0]."','".$dataLBM[1]."','".$dataLBM[2]."','".$dataLBM[3]."','".$dataLBM[4]."','".$dataLBM[5]."','".$dataLBM[6]."','".$dataLBM[7]."','".$dataLBM[8]."','".$dataLBM[9]."'";
+        $lbm_temp_status = empty($dataLBM[0]) ? 'err' : $dataLBM[0];  // เก็บค่า 00000200 จาก LBM
         
         // คำนวณ sum และ average เฉพาะเมื่อมีค่าแบตเตอรี่ที่ไม่เป็น 0 หรือค่าว่าง
         $validBatteryValues = array_filter(array_slice($dataLBM, 1, 6), function($value) {
@@ -124,40 +153,55 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
             }
         }
         
-        $lbm_status = "000"; // Default to Comm Error
+        // กำหนดสถานะ LBM และคำอธิบาย
+        $lbm_status = "000"; // เริ่มต้นเป็น Comm Error
+        $lbm_description = "Cannot communicate with LBM";
+        
         if ($commLBM) {
-            // ตรวจสอบว่ามีค่าอุณหภูมิและแบตเตอรี่ทุกลูก
-            $allBatteriesValid = true;
-            for ($i = 1; $i <= 6; $i++) {
-                $battVar = "batt" . $i;
-                if (empty($$battVar) || floatval($$battVar) <= 0) {
-                    $allBatteriesValid = false;
-                    break;
-                }
-            }
-
-            if ($dataLBM[0] != "" && $SUMdata > 0 && $allBatteriesValid) {
-                $lbm_status = "011"; // Normal if all conditions are met
+            // เช็ค MCU power supply status (bit 6) ก่อน
+            $lbm_status_bits = isset($dataLBM[0]) ? $dataLBM[0] : "00000000";
+            if (strlen($lbm_status_bits) >= 7 && substr($lbm_status_bits, -7, 1) === "1") {
+                $lbm_status = "010";
+                $lbm_description = "MCU power supply fail";
+                dbg("LBM Status", "LBM Status bit6=1");
+            } else {
+                // ตรวจสอบค่าแบตเตอรี่
+                $batteryVoltages = array();
                 
-                // Check for LBM issues
-                if (floatval($dataLBM[0]) > $UpsHighTemp) {
-                    $lbm_status = "001"; // High Temperature
-                }
-                
-                // ตรวจสอบแรงดันแบตเตอรี่แต่ละลูก
+                // เก็บค่าแรงดันแบตเตอรี่
                 for ($i = 1; $i <= 6; $i++) {
-                    $battVar = "batt" . $i;
-                    if (floatval($$battVar) < 30) { // ถ้าแรงดันแบตเตอรี่ลูกใดลูกหนึ่งต่ำกว่า 30V
-                        $lbm_status = "001";
-                        break;
+                    if (isset($dataLBM[$i]) && is_numeric($dataLBM[$i])) {
+                        $value = floatval($dataLBM[$i]);
+                        if ($value >= 0.2 && $value <= 0.5) {
+                            $batteryVoltages[] = $value;
+                        }
                     }
                 }
-                
-                if ($SUMdata < 180) {
-                    $lbm_status = "001"; // Low Total Battery Voltage
+
+                if (count($batteryVoltages) === 6) {
+                    $avgVoltage = array_sum($batteryVoltages) / 6;
+                    $maxDeviation = 0;
+                    
+                    // ตรวจสอบความแตกต่างของแรงดัน
+                    foreach ($batteryVoltages as $i => $voltage) {
+                        $deviation = abs(($voltage - $avgVoltage) / $avgVoltage) * 100;
+                        $maxDeviation = max($maxDeviation, $deviation);
+                    }
+                    
+                    if ($maxDeviation > 10) {
+                        $lbm_status = "010";
+                        $lbm_description = "Battery fail - High or low voltage from Avg Volt";
+                        dbg("LBM Status", $lbm_description);
+                    } else {
+                        $lbm_status = "011";
+                        $lbm_description = "LBM normal";
+                        dbg("LBM Status", $lbm_description);
+                    }
+                } else {
+                    $lbm_status = "000";
+                    $lbm_description = "Cannot communicate with LBM";
+                    dbg("LBM Status", $lbm_description);
                 }
-            } else {
-                $lbm_status = "001"; // Minor if connected but missing or invalid data
             }
         }
 
@@ -166,52 +210,121 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
         // ========== INSERT ข้อมูลลง ups_data ==========
         dbg("Battery Values", "SUM: " . ($SUMdata ?? 'null') . ", AVG: " . ($AVGdata ?? 'null'));
         
-        $stmt = $conn->prepare("INSERT INTO ups_data (
-            `ups_id`, `signal`, `env_temp`, `RH`, `last_signal_updated`,
-            `input_voltage`, `input_freq_hz`, `input_fault_v`, `output_i_percent`, `output_voltage`,
-            `ups_temp`, `batt_temp`, `batt_1`, `batt_2`, `batt_3`, `batt_4`, `batt_5`, `batt_6`,
-            `UPS_status`, `LBM_ampTemp`, `avg_voltage`, `sum_batt`, `current_voltage`,
-            `LBM_status`, `nb_status_id`, `ups_status_id`, `lbm_status_id`
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-
-        // สร้างตัวแปรเพื่อเก็บค่าที่จะใส่ใน prepared statement
-        $input_voltage = $commUPS ? $dataUPS[0] : null;
-        $input_freq = $commUPS ? $dataUPS[1] : null;
-        $input_fault = $commUPS ? $dataUPS[2] : null;
-        $output_percent = $commUPS ? $dataUPS[3] : null;
-        $output_voltage = $commUPS ? $dataUPS[4] : null;
-        $ups_temperature = $commUPS ? $dataUPS[6] : null;
-        
-        $ups_status_value = $commLBM ? $dataLBM[0] : null;     // เก็บค่า 00000200 ใน UPS_status
-        $batt1 = $commLBM ? $dataLBM[1] : null;
-        $batt2 = $commLBM ? $dataLBM[2] : null;
-        $batt3 = $commLBM ? $dataLBM[3] : null;
-        $batt4 = $commLBM ? $dataLBM[4] : null;
-        $batt5 = $commLBM ? $dataLBM[5] : null;
-        $batt6 = $commLBM ? $dataLBM[6] : null;
-        $batt_temperature = $commLBM ? '-50.0' : null;      // เก็บค่า -50 ใน batt_temp
-        $lbm_temp = $commLBM ? $dataLBM[8] : null;
-        $current_v = $commLBM ? $dataLBM[9] : null;
-        
-        // กำหนดค่า LBM_status ตามเงื่อนไข
-        if ($commLBM) {
-            $lbm_temp_status = '00000000';  // เชื่อมต่อได้ปกติ
-        } elseif ($dataLBM[0] === '' || $dataLBM[0] === null) {
-            $lbm_temp_status = 'err';  // มีข้อผิดพลาด
+        // กำหนดค่าตัวแปรที่จำเป็นทั้งหมด
+        if (count($dataUPS) == 8) {
+            $input_voltage = $dataUPS[0];
+            $input_freq = $dataUPS[1];
+            $input_fault = $dataUPS[2];
+            $output_percent = $dataUPS[3];
+            $output_voltage = $dataUPS[4];
+            $ups_temperature = $dataUPS[6];
         } else {
-            $lbm_temp_status = $dataLBM[0];  // ค่าอุณหภูมิปกติ
+            $input_voltage = null;
+            $input_freq = null;
+            $input_fault = null;
+            $output_percent = null;
+            $output_voltage = null;
+            $ups_temperature = null;
         }
 
-        // เพิ่ม logging เพื่อตรวจสอบค่าสถานะ
-        dbg("LBM Status Values", "LBM Status ID: $lbm_status, LBM Temp Status: $lbm_temp_status");
+        if (count($dataLBM) == 10) {
+            $batt_vcell = $dataUPS[5];  // 2.25 จาก dataUPS[5]
+            $batt1 = $dataLBM[1];
+            $batt2 = $dataLBM[2];
+            $batt3 = $dataLBM[3];
+            $batt4 = $dataLBM[4];
+            $batt5 = $dataLBM[5];
+            $batt6 = $dataLBM[6];
+            $batt_temperature = $dataLBM[7];  // -50.0 จาก dataLBM[7]
+            $lbm_temp = $dataLBM[8];
+            $current_v = $dataLBM[9];
+        } else {
+            $batt_vcell = null;
+            $batt1 = null;
+            $batt2 = null;
+            $batt3 = null;
+            $batt4 = null;
+            $batt5 = null;
+            $batt6 = null;
+            $batt_temperature = null;
+            $lbm_temp = null;
+            $current_v = null;
+        }
 
-        $stmt->bind_param("sssssssssssssssssssssssssss",
-            $ups_id, $rssi, $temp, $humid, $date,
-            $input_voltage, $input_freq, $input_fault, $output_percent, $output_voltage,
-            $ups_temperature, $batt_temperature, 
-            $batt1, $batt2, $batt3, $batt4, $batt5, $batt6,
-            $ups_status_value, $lbm_temp, $AVGdata, $SUMdata, $current_v,
-            $lbm_temp_status, $nb_status, $ups_status, $lbm_status
+        // Show SQL query for debugging
+        dbg("SQL Query", "INSERT INTO ups_data columns count: 28");
+        
+        // ลบส่วนที่ซ้ำและจัดระเบียบตัวแปร
+        
+        // กำหนดค่า LBM_status จากข้อมูลที่ได้รับ
+        if ($commLBM) {
+            $lbm_temp_status = $dataLBM[0];  // เก็บค่า 00000200 จาก LBM
+        } else {
+            $lbm_temp_status = 'err';  // มีข้อผิดพลาด
+        }
+
+        // บันทึก log ก่อนเข้า database
+        dbg("Values for Database", sprintf(
+            "UPS Status: [%s], LBM Status: [%s]",
+            $ups_raw_status,
+            $lbm_temp_status
+        ));
+
+        // เตรียม SQL statement ตามลำดับที่ต้องการ
+        $sql = "INSERT INTO ups_data (
+            `ups_id`, `signal`, `RH`, `last_signal_updated`, 
+            `input_voltage`, `input_freq_hz`, `input_fault_v`, 
+            `output_i_percent`, `output_voltage`, `batt_v_per_cell`, 
+            `ups_temp`, `UPS_status`, `LBM_status`, 
+            `batt_1`, `batt_2`, `batt_3`, `batt_4`, `batt_5`, `batt_6`, 
+            `batt_temp`, `env_temp`, `LBM_ampTemp`, 
+            `avg_voltage`, `sum_batt`, `current_voltage`, 
+            `nb_status_id`, `ups_status_id`, `lbm_status_id`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        // แสดงข้อมูลที่จะบันทึกก่อน bind
+        dbg("Data Mapping", sprintf(
+            "UPS: [%s,%s,%s,%s,%s,%s,%s,%s] LBM: [%s,%s,%s,%s,%s,%s,%s,%s,%s,%s]",
+            $input_voltage, $input_freq, $input_fault, $output_percent, $output_voltage, $batt_vcell, $ups_temperature, $ups_raw_status,
+            $lbm_temp_status, $batt1, $batt2, $batt3, $batt4, $batt5, $batt6, $batt_temperature, $lbm_temp, $current_v
+        ));
+        
+        // แสดงความแตกต่างระหว่าง Raw Status และ Calculated Status
+        dbg("Status Comparison", sprintf(
+            "UPS: Raw=%s, Calculated=%s | LBM: Raw=%s, Calculated=%s | NB: Calculated=%s",
+            $ups_raw_status, $ups_status, $lbm_temp_status, $lbm_status, $nb_status
+        ));
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ssssssssssssssssssssssssssss",
+            $ups_id,          // 1. ups_id
+            $rssi,           // 2. signal (data[0] = 0)
+            $humid,          // 3. RH (data[2] = 42.60)
+            $date,           // 4. last_signal_updated
+            $input_voltage,  // 5. input_voltage (dataUPS[0] = 233.7)
+            $input_freq,     // 6. input_freq_hz (dataUPS[1] = 233.1)
+            $input_fault,    // 7. input_fault_v (dataUPS[2] = 220.0)
+            $output_percent, // 8. output_i_percent (dataUPS[3] = 000)
+            $output_voltage, // 9. output_voltage (dataUPS[4] = 50.1)
+            $batt_vcell,     // 10. batt_v_per_cell (dataUPS[5] = 2.25)
+            $ups_temperature, // 11. ups_temp (dataUPS[6] = 28.0)
+            $ups_raw_status, // 12. UPS_status (dataUPS[7] = 00000001) - RAW STATUS
+            $lbm_temp_status, // 13. LBM_status (dataLBM[0] = 00000200)
+            $batt1,          // 14. batt_1 (dataLBM[1] = 0.33)
+            $batt2,          // 15. batt_2 (dataLBM[2] = 0.33)
+            $batt3,          // 16. batt_3 (dataLBM[3] = 0.33)
+            $batt4,          // 17. batt_4 (dataLBM[4] = 0.33)
+            $batt5,          // 18. batt_5 (dataLBM[5] = 0.33)
+            $batt6,          // 19. batt_6 (dataLBM[6] = 0.33)
+            $batt_temperature, // 20. batt_temp (dataLBM[7] = -50.0)
+            $temp,           // 21. env_temp (data[1] = 30.09)
+            $current_v,      // 22. LBM_ampTemp (dataLBM[9] = 0.1)
+            $AVGdata,        // 23. avg_voltage (calculated)
+            $SUMdata,        // 24. sum_batt (calculated)
+            $current_v,      // 25. current_voltage (dataLBM[9] = 0.1)
+            $nb_status,      // 26. nb_status_id (calculated 011/000/010)
+            $ups_status,     // 27. ups_status_id (calculated 011/000/010) - NOT RAW
+            $lbm_status      // 28. lbm_status_id (calculated 011/000/010)
         );
 
         if ($stmt->execute()) {
