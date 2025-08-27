@@ -50,6 +50,7 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
     // กำหนดค่าเริ่มต้นสำหรับสถานะ
     $ups_status_value = 'err';
     $ups_status = '000';
+    $ups_raw_status = 'err';  // เพิ่มตัวแปรนี้เพื่อป้องกัน undefined
     $lbm_temp_status = 'err';
     $lbm_status = '000';
 
@@ -73,6 +74,7 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
     } else {
         $sqlUPS = "null,null,null,null,null,null,null,'err'";
         $ups_status_value = 'err';  // Error indicator for raw status
+        $ups_raw_status = 'err';    // เพิ่มเพื่อป้องกัน undefined
         $ups_status = "000";       // Comm Error for status_id
         $commUPS = 0;
     }
@@ -86,14 +88,21 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
         $sqlLBM = "'".$dataLBM[0]."','".$dataLBM[1]."','".$dataLBM[2]."','".$dataLBM[3]."','".$dataLBM[4]."','".$dataLBM[5]."','".$dataLBM[6]."','".$dataLBM[7]."','".$dataLBM[8]."','".$dataLBM[9]."'";
         $lbm_temp_status = empty($dataLBM[0]) ? 'err' : $dataLBM[0];  // เก็บค่า 00000200 จาก LBM
         
-        // คำนวณ sum และ average เฉพาะเมื่อมีค่าแบตเตอรี่ที่ไม่เป็น 0 หรือค่าว่าง
-        $validBatteryValues = array_filter(array_slice($dataLBM, 1, 6), function($value) {
-            return is_numeric($value) && floatval($value) > 0;
-        });
+        // คำนวณ sum และ average สำหรับแบตเตอรี่ 6 ก้อน
+        $validBatteryValues = array();
+        for ($i = 1; $i <= 6; $i++) {
+            if (isset($dataLBM[$i]) && is_numeric($dataLBM[$i])) {
+                $value = floatval($dataLBM[$i]);
+                // ยอมรับค่าที่มากกว่า 0 (รวมค่าเล็กๆ เช่น 0.33)
+                if ($value >= 0) {
+                    $validBatteryValues[] = $value;
+                }
+            }
+        }
         
-        if (!empty($validBatteryValues)) {
+        if (count($validBatteryValues) == 6) {
             $SUMdata = array_sum($validBatteryValues);
-            $AVGdata = number_format($SUMdata / count($validBatteryValues), 2);
+            $AVGdata = number_format($SUMdata / 6, 2);
         } else {
             $SUMdata = null;
             $AVGdata = null;
@@ -228,7 +237,7 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
         }
 
         if (count($dataLBM) == 10) {
-            $batt_vcell = $dataUPS[5];  // 2.25 จาก dataUPS[5]
+            $batt_vcell = isset($dataUPS[5]) ? $dataUPS[5] : null;  // ป้องกัน undefined key
             $batt1 = $dataLBM[1];
             $batt2 = $dataLBM[2];
             $batt3 = $dataLBM[3];
@@ -236,8 +245,8 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
             $batt5 = $dataLBM[5];
             $batt6 = $dataLBM[6];
             $batt_temperature = $dataLBM[7];  // -50.0 จาก dataLBM[7]
-            $lbm_temp = $dataLBM[8];
-            $current_v = $dataLBM[9];
+            $lbm_temp = $dataLBM[8];  // 29.5 จาก dataLBM[8] 
+            $current_v = $dataLBM[9];  // 0.1 จาก dataLBM[9]
         } else {
             $batt_vcell = null;
             $batt1 = null;
@@ -318,7 +327,7 @@ if (isset($_GET['submit']) && isset($_GET['id']) && isset($_GET['data'])) {
             $batt6,          // 19. batt_6 (dataLBM[6] = 0.33)
             $batt_temperature, // 20. batt_temp (dataLBM[7] = -50.0)
             $temp,           // 21. env_temp (data[1] = 30.09)
-            $current_v,      // 22. LBM_ampTemp (dataLBM[9] = 0.1)
+            $lbm_temp,       // 22. LBM_ampTemp (dataLBM[8] = 29.5) - แก้ไขให้ใช้ lbm_temp
             $AVGdata,        // 23. avg_voltage (calculated)
             $SUMdata,        // 24. sum_batt (calculated)
             $current_v,      // 25. current_voltage (dataLBM[9] = 0.1)
